@@ -34,3 +34,23 @@
 <br>
 
 ### 2. 임시 객체의 소멸 시점
+<br>
+
+<div align="left">
+  <img src="https://github.com/user-attachments/assets/9b3e9d4c-ba9d-46a6-b174-5634fb63c9f1" height="500" width="350">
+</div>
+
+<div align="left">
+  <img src="https://github.com/user-attachments/assets/a234ced4-c34e-4a4c-bc77-5abc7a67a2b6" height="100" width="350">
+</div>
+
+>> main 문 안에서 Temporary(200).ShowTempInfo();
+
+>> Temporary(200)을 통해 임시객체가 생성된 위치에는 임시객체가 통째로 반환된 것이 아닌 임시객체의 참조 값이 반환된다.
+>>
+>> ✅ 반환을 위해서 임시객체가 생성은 되지만 이 객체는 메모리 공간에 존재하고 이객체의 참조 값이 반환 되는 것이다.
+>>
+>> ✅ **원칙 상 임시객체는 다음 행으로 넘어갈 시 곧바로 소멸 되지만 , const Temporary &ref = Temporary(300); 문장 처럼** 
+>>
+>> **임시객체의 참조값을 참조자로 참조하는 경우에는 다음행에서도 접근이 가능하다.**
+
