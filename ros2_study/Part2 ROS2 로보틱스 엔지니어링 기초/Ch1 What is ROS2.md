@@ -62,11 +62,36 @@
     4. 포팅 / 통합을 Linux , WIndow, Mac, RTOS 와 같은 환경에서 용이하도록 만들어 개발자가 직접 선택할 수 있는
 
        OS의 범위를 넓혀줌.
-  
-  
-  
 
+## Ch01-02 시뮬레이션 환경 구성
+---
 
+ ```bash
+ sudo apt install ros-humble-tiago-gazebo
+ ```
 
+ - binary 파일로 공개 되어 있어 빌드 패키지를 별도로 내려받을 필요없이 sudo apt install 명령어로 바로 설치 가능하다.
+ - 위 명령어를 실행하면 관련된 의존성 및 Moveit이라는 로봇팔을 편리하게 제어할 수 있도록 도와주는 패키지도 모두 설치된다.
 
+ ```bash
+ ros2 launch tiago_gazebo tiago_gazebo.launch.py is_public_sim:=True
+ ```
+
+- binary가 아닌 source로 빌드를 할 경우 터미널 창을 새로 열어줘야 하지만, binary 이기 때문에
+
+  현재 terminal창에서 위명령어로 gazebo 프로그램을 바로 실행 가능하다.
+
+ <div align="left">
+  <img src="https://github.com/user-attachments/assets/6efcafc0-e270-4fb8-984a-5466a4965d9f" height="350" width="700">
+</div>
+
+<br>
+
+ ```bash
+ ros2 run teleop_twist_keyboard teleop_twist_keyboard
+ ```
+
+ - 위의 teleop_twist_keyboard node를 실행시켜 로봇을 키보드로 이동시킬 수 있다.
+ - tiago 패키지는 다른 로봇 패키지와 다르게 키보드 제어시 실제 주기에 맞게 움직이는 것을 잘 구현시켜 놓았다.
+ 
 
