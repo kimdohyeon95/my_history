@@ -104,3 +104,117 @@
 
    의미이다. ( 파일 생성과 같은 경우는 제외 ) 
 
+## Ch02-03 Node 실습 
+---
+
+ ```bash
+ ros2 launch tiago_gazebo tiago_gazebo.launch.py is_public_sim:=True
+ ```
+ - tiago_gazebo 시뮬레이션 실행
+
+ ```bash
+ ros2 node list
+ ```
+<div align="left">
+  <img src="https://github.com/user-attachments/assets/30a2cb73-a0a0-438e-bec5-cc266a981ca2" height="350" width="500">
+</div>
+
+ - 현재 실행되고 있는 Node 확인할 수 있는 명령어
+
+ ### Node Programming 
+ ```bash 
+ import rclpy
+ from rclpy.node import Node
+ 
+ class TimerNode(Node):
+     def __init__(self):
+         super().__init__('timer_node')
+         self.timer = self.create_timer(1.0, self.timer_callback)
+         self.count = 0
+ 
+     def timer_callback(self):
+         self.count += 1
+         self.get_logger().info(f'Hello ROS2! Count: {self.count}')
+ 
+ def main(args=None):
+     rclpy.init(args=args)
+     timer_node = TimerNode()
+     rclpy.spin(timer_node)
+     timer_node.destroy_node()
+     rclpy.shutdown()
+ 
+ if __name__ == '__main__':
+    main() 
+ ```
+
+ - RCL (ROS Client Library)
+  - 다양한 프로그래밍 언어로 작성된 노드가 통신할 수 있도록 도와주는 라이브러리
+  - ROS2는 다음과 같은 클라이언트 라이브러리를 유지 관리
+    - `rclpy`: Python 클라이언트 라이브러리
+    - `rclcpp`: C++ 클라이언트 라이브러리 
+ - Node 생성 시, 일반적으로 rclpy 라이브러리의 node 모듈을 상속 받도록 class 작성을 해야한다.
+ - 생성 Node 의 생성자에서 `super().init('node_name')` 함수를 통해 node 이름을 지정할 수 있다.
+ - `create_timer` 함수는 지정된 주기로 timer_callback 함수를 호출하도록 한다.
+ - main 문 안에서 `rclpy.init()` 함수로 Node를 초기화하고 인스턴스를 생성 후 `rclpy.spin()`함수를
+
+   이용하여 Node를 실행 시킨다. 일반적으로 spin함수는 키보드 인터럽트가 들어오지 않는 이상 계속 실행된다.
+
+ - `destroy_node()`함수를 통해 생성된 Node를 없애고 `rclpy.shutdown()`으로 종료한다.
+
+ ```bash
+ entry_points={
+     'console_scripts': [
+         'timer_node = my_package.timer:main',
+     ],
+ },
+ ```
+ - setup.py 파일에서 entry points 부분은  ` 'node_name'= package_name.source_file_name:main'`
+
+   문장으로 해당 패키지안에 파이썬 파일을 찾아서 main문을 바탕으로 실행가능한 파일인 node를 만든다는 의미이다.
+
+ - 빌드 한 후에 install 폴더 안에 package_name 폴더 안의 lib 폴더 안에 setup.py 에서
+
+   생성한 Node가 파일로 있음.
+
+ ```bash
+ cd ~/ros2_ws
+ colcon build
+ ```
+ - 워크스페이스의 루트 디렉토리로 이동하여 패키지를 다시 빌드
+
+ ```bash
+ source ~/ros2_ws/install/local_setup.bash
+
+ # 또는
+ 
+ source ~/ros2_ws/install/local_setup.zsh
+```
+ - install 폴더 내의 새로 빌드한 내용의 설치 파일을 적용하기 위해 위 명령어를 입력하거나 새로운 터미널을 열어준다.
+
+ ```bash
+ ros2 run my_package timer_node
+ ```
+ - 생성한 노드를  `ros2 run <package_name> <node_name>` 명령어로 실행.
+
+ ```bash
+ ros2 node list
+```
+
+ <div align="left">
+  <img src="https://github.com/user-attachments/assets/63e587aa-ab2a-4752-a077-b9f284a37328" height="350" width="500">
+</div>
+
+ - 새로운 터미널을 열어 실행중인 timer_node가 목록에 나타나는지 확인.
+
+ ```bash
+ # ros2 node info <node_name>
+ ros2 node info /timer_node
+ ```
+<div align="left">
+  <img src="https://github.com/user-attachments/assets/bce03986-41e7-43f0-b637-22030227606b" height="350" width="500">
+</div>
+
+ - `ros2 node info` 명령어를 실행 시켜 현재 생성된 Node가 실행 중에 돌아가는 Publisher/Subscriber/Service 통신등에
+
+   대한 정보들이 나타난다. 
+
