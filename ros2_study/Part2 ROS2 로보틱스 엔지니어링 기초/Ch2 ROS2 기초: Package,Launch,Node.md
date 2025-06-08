@@ -201,7 +201,7 @@
 ```
 
  <div align="left">
-  <img src="https://github.com/user-attachments/assets/63e587aa-ab2a-4752-a077-b9f284a37328" height="350" width="500">
+  <img src="https://github.com/user-attachments/assets/63e587aa-ab2a-4752-a077-b9f284a37328" height="300" width="660">
 </div>
 
  - 새로운 터미널을 열어 실행중인 timer_node가 목록에 나타나는지 확인.
@@ -218,3 +218,207 @@
 
    대한 정보들이 나타난다. 
 
+## Ch02-04 Launch 실습
+---
+
+ ### Launch 파일 실습 
+ 
+ ```bash
+ import rclpy
+ from rclpy.node import Node
+ 
+ class FastTimerNode(Node):
+     def __init__(self):
+         super().__init__('fast_timer_node')
+         timer_period = 0.1  # seconds
+         self.timer = self.create_timer(timer_period, self.timer_callback)
+         self.count = 0
+ 
+     def timer_callback(self):
+         self.count += 1
+         self.get_logger().info(f'Fast Count: {self.count}')
+ 
+ def main(args=None):
+     rclpy.init(args=args)
+     fast_timer_node = FastTimerNode()
+     rclpy.spin(fast_timer_node)
+     fast_timer_node.destroy_node()
+     rclpy.shutdown()
+ 
+ if __name__ == '__main__':
+     main()
+ ```
+
+ - 앞서 작성한 timer_node 와 모두 동일한 내용에서 timer_callback 함수의 주기만 0.1초로 변경하였다.
+
+ ```bash
+ cd ~/ros2_ws/src/my_package
+ mkdir launch
+ ```
+ - my_package 내에 launch 디렉토리 및 내부 launch 파일 생성.
+ - 보통 launch 파일은 python 파일로 만드는데 파일명을 <launch_filename>.launch.py로 만든다.
+  
+ ```bash
+ from launch import LaunchDescription
+ from launch_ros.actions import Node
+ 
+ def generate_launch_description():
+     return LaunchDescription([
+         Node(
+             package='my_package',
+             executable='timer_node',
+             name='my_timer_node'
+         ),
+         Node(
+             package='my_package',
+             executable='fast_timer_node',
+             name='my_fast_timer_node',
+         )
+     ])
+ ```
+
+ - launch.py 파일에 Node 의 package, executable, name은 각각 패키지 이름, setup.py 파일에서 지정한 노드 이름,
+ 
+   ros2 시  스템 상에 등록되는 node의 이름이다. 
+
+  ```bash
+ from setuptools import setup
+ import os
+ from glob import glob
+ 
+ package_name = 'my_package'
+ 
+ setup(
+     name=package_name,
+     version='0.0.0',
+     packages=[package_name],
+     data_files=[
+         ('share/ament_index/resource_index/packages',
+             ['resource/' + package_name]),
+         ('share/' + package_name, ['package.xml']),
+         (os.path.join('share', package_name), glob('launch/*.launch.py'))
+     ],
+     install_requires=['setuptools'],
+     zip_safe=True,
+     maintainer='somebody very awesome',
+     maintainer_email='user@user.com',
+     description='TODO: Package description',
+     license='TODO: License declaration',
+     tests_require=['pytest'],
+     entry_points={
+         'console_scripts': [
+             'timer_node = my_package.timer:main',
+             'fast_timer_node = my_package.fast_timer:main',
+         ],
+     },
+ )
+ ```
+ - setup.py 파일에 entry_points 부분에 기존의 timer_node 이외에 fast timer node를 추가한다. 
+
+ - data_files 부분에는 추가로 install 디렉토리에 설치할 아이들을 적어준다. launch 디렉토리 내에
+
+   launch.py 확장자를 가진 모든 파일을 설치하겠다는 의미이다. 
+
+ - 이후 설정 관련한 config 디렉토리가 생길 때에는 동일하게 .yaml 을 모두 설치하도록 아래에 경로를 추가한다. 
+
+ ```bash
+ colcon build --symlink-install --packages-select my_package
+ ```
+
+<div align="left">
+  <img src="https://github.com/user-attachments/assets/e8553ff7-d081-4de2-b722-4a5bdc0f6da0" height="150" width="300">
+</div>
+
+- 처음 한번만 빌드한 후 그 뒤의 수정사항에 대해서는 빌드를 할 필요가 없도록 --symlink-install 옵션을 
+
+  넣어서 빌드한다. 
+
+ ```bash
+ ros2 launch my_package dual_timer.launch.py
+ ```
+
+<div align="left">
+  <img src="https://github.com/user-attachments/assets/e3c84f08-b18b-423b-ba06-a1258f177932" height="150" width="250">
+</div>
+
+ - launch 명령어를 실행 시 2개의 노드가 동시에 동작하는 것을 확인 할 수 있다. 
+
+ ### setup.py
+
+  #### setup.py 의 목적 
+  - Python 패키지의 메타데이터와 설치 정보를 정의하는 중요한 파일
+  - 파이썬 패키지를 컴파일하는 데 필요한 내용을 포함
+
+  #### 핵심 1: entry_points
+
+  ```bash
+  import os
+  from glob import glob
+  from setuptools import setup
+  
+  package_name = 'my_package'
+  
+  setup(
+      
+      #code
+      ...
+      #code
+      
+      entry_points={
+          'console_scripts': [
+              'timer_node = my_package.timer:main',
+              'fast_timer_node = my_package.fast_timer:main',
+          ],
+      },
+      
+      #code
+      ...
+      
+  )
+  ```
+
+  - 터미널에서 직접 실행할 수 있는 스크립트를 정의
+  - 실행 가능한 파일을 생성하기 위해 `entry_points` 라는 딕셔너리로 작성
+    - `console_scripts`라는 key와, value로 배열을 작성
+      ```bash
+      '<executable_name> = <package_name>.<script_name>:main'
+      ```
+      - 위의 경우 `timer_node`라는 새 실행 가능한 파일을 생성
+      - 이 실행 가능한 파일은 `my_package`라는 패키지 안에 `timer.py` 라는 스크립트를 사용하여 생성
+
+  #### 핵심 2: data_files 
+
+  ```bash
+  import os
+  from glob import glob
+  from setuptools import setup
+  
+  package_name = 'my_package'
+  
+  setup(
+      
+      #code
+      ...
+      #code
+      
+      data_files=[
+              ('share/ament_index/resource_index/packages',
+                  ['resource/' + package_name]),
+              ('share/' + package_name, ['package.xml']),
+              (os.path.join('share', package_name), glob('launch/*.launch.py'))
+          ],
+      
+      #code
+      ...
+      #code
+      
+  )
+  ```
+
+  - `colcon`이 컴파일 과정에서 launch 파일을 찾으려면 `setup.py`파일의 data_files 매개 변수를
+
+    사용하여 launch 파일을 알려주어야 한다.
+
+  - 예를  들어, `my_package`라는 이름의 패키지를 사용하면 `launch/`폴더에 있는 모든 launch 파일
+
+    을 `~/ros2_ws/install/my_package/share/my_package/`에 설치한다. 
