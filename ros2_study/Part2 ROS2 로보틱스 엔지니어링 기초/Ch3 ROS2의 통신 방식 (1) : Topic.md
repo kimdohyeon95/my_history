@@ -372,4 +372,140 @@
  - tiago_gazebo 시뮬레이션을 실행하면 시뮬레이션에서 로봇이 5초 동안 전진했다가 5초 동안 후진하는 것을 반복하는 것을 확인할 수 있다.
  - 새 터미널을 열고 `ros2 topic echo` 명령어로 발행되는 메시지를 확인할 수 있다.
  
+## Ch03-04 (실습) Topic Programming (2) - Subscriber
+---
 
+ ### Topic Subscriber Node
+
+ ```bash
+ <depend>sensor_msgs</depend>
+ ```
+
+ - 2D Lidar 센서 데이터가 interface 타입이 sensor_msgs 패키지 안에 들어 있으므로 의존성을 추가한다. 
+
+ ```bash
+ ros2 topic info /scan_raw
+ ```
+  <div align="left">
+  <img src="https://github.com/user-attachments/assets/5a852d3c-dfa6-4243-a728-26a0f79fdd71" height="100" width="500">
+</div>
+ 
+ - tiago_gazebo 시뮬레이션 실행 후, 2D Lidar 데이터의 topic 이름인 `/scan_raw`의 interface 타입
+
+   을 확인한다.
+
+ ```bash
+ ros2 topic hz /scan_raw
+ ```
+ <div align="left">
+  <img src="https://github.com/user-attachments/assets/9bf65865-b7c1-4233-b5ec-7546aeed324b" height="200" width="500">
+</div>
+
+ - `ros2 topic hz /scan_raw`명령어로 /scan_raw 토픽의 데이터 발행 주기를 확인한다.
+
+ ```bash
+ ros2 topic echo /scan_raw     
+ ```
+ <div align="left">
+  <img src="https://github.com/user-attachments/assets/689d6985-7aac-41e2-be87-c391c051caab" height="200" width="500">
+</div>
+
+ - `ros2 topic echo /scan_raw` 명령어로 /scan_raw 토픽의 데이터 구조를 확인한다.
+ - `/scan_raw` 데이터
+    - `angle_min`: 라이다 센서의 스캔 범위 각도의 최소값
+    - `angle_max`: 라이다 센서의 스캔 범위 각도의 최대값
+    - `angle_increment`: 라이다 센서 데이터의 간격
+    - 'range_min`: 라이다 센서 데이터의 최소 거리
+    - `range_max`: 라이다 센서 데이터의 최대 거리
+
+  ```bash
+  import rclpy
+  from rclpy.node import Node
+  from sensor_msgs.msg import LaserScan
+  import math
+  
+  class LidarSubscriber(Node):
+      def __init__(self):
+          super().__init__('lidar_subscriber')
+          self.subscription = self.create_subscription(
+              LaserScan,
+              '/scan_raw',
+              self.listener_callback,
+              10)
+          self.subscription  # prevent unused variable warning
+          
+          self.get_logger().info('LidarSubscriber has been started')
+  
+      def listener_callback(self, msg):
+          # 전방 180도(-90도에서 90도까지) 범위의 데이터만 처리
+          front_ranges = msg.ranges[len(msg.ranges)//4:3*len(msg.ranges)//4]
+          
+          # 무한대 값과 0값을 제외한 유효한 거리 값 찾기
+          valid_ranges = [r for r in front_ranges if r != float('inf') and r != 0.0]
+          
+          if valid_ranges:
+              min_distance = min(valid_ranges)
+              min_angle = front_ranges.index(min_distance) - len(front_ranges)//2
+              min_angle_degrees = min_angle * (msg.angle_increment * 180.0 / math.pi)
+              
+              self.get_logger().info(f'Closest obstacle: Distance = {min_distance:.2f} m, Angle = {min_angle_degrees:.2f} degrees')
+          else:
+              self.get_logger().info('No obstacles detected in the front 180 degrees')
+  
+  def main(args=None):
+      rclpy.init(args=args)
+      lidar_subscriber = LidarSubscriber()
+      rclpy.spin(lidar_subscriber)
+      lidar_subscriber.destroy_node()
+      rclpy.shutdown()
+  
+  if __name__ == '__main__':
+      main()
+```
+
+ - `tutorial_topic/tutorial_topic/lidar_subscriber.py` 파일을 생성하고 위 코드를 작성
+ - `create_subscription` 함수의 첫 번째 인자는 `/scan_raw` 토픽의 interface type,
+
+    두번째 인자는 구독 할 topic 이름, 세번째 인자는 토픽 발행 시 마다 실행될 콜백함수
+
+    `listener_callback`, 네번째 인자는 Queue Size 를 나타낸다.
+
+  - `listener_callback` 함수
+     - `/scan_raw`토픽의 range 리스트에서 전방 180도 범위의 데이터만 처리한다.
+     - 무한대 값 `inf` 와 `0`값을 제외한 유효한 거리 값 중 최소값을 찾는다.
+     - 가장 가까운 장애물의 거리와 각도를 계산하여 로그로 출력한다. 
+
+ ```bash
+ entry_points={
+    'console_scripts': [
+        'move_publisher = tutorial_topic.move_publisher:main',
+        'lidar_subscriber = tutorial_topic.lidar_subscriber:main',
+      ],
+  },
+ ```
+
+ - `tutorial_topic/setup.py` 파일을 열고 `entry_points` 섹션에 새로운 노드를 추가
+
+ ```bash
+ cd ~/ros2_ws
+ colcon build --symlink-install --packages-select tutorial_topic
+ source install/local_setup.bash # 환경에 따라 local_setup.zsh
+ ```
+ - 워크 스페이스 루트 디렉토리에서 패키지 빌드 
+
+ ```bash
+ ros2 run tutorial_topic lidar_subscriber
+ ```
+ <div align="left">
+  <img src="https://github.com/user-attachments/assets/d3d4f346-417b-488e-9ed9-f02ebe0c430b" height="350" width="500">
+</div>
+
+ <div align="left">
+  <img src="https://github.com/user-attachments/assets/61fa759b-c756-4ede-8282-260cb3d4b72b" height="350" width="500">
+</div>
+ 
+ - tiago_gazebo 시뮬레이션이 실행 중인 상태에서, 새 터미널을 열어 Subscriber를 실행하면
+
+   터미널에서 tiago_gazebo 로봇 전방의 가장 가까운 장애물까지의 거리와 각도 정보가 주기적으로
+
+   출력되는 것을 확인할 수 있다. 
