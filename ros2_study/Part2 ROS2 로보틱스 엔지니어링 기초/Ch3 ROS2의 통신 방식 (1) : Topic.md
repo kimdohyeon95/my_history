@@ -665,21 +665,136 @@
 
    상태를 변경해가며 벽을 찾아 이동하는 것을 확인 할 수 있다. 
 
+## Ch03-06. (실습) Interface Programming - Topic
+---
 
+ ### 새로운 Interface 타입 개발의 필요성 
+ - 기존 interface 타입으로 표현할 수 없는 데이터 구조가 필요할 때
+   - ROS2에서 제공하는 표준 메시지 타입으로 충분하지 않은 경우, 프로젝트에 특화된 데이터를 표현해야 할 때 사용
+ - 여러 데이터 타입을 하나의 메시지로 묶어야 할 때
+   - 복잡한 센서 데이터나 로봇의 상태 정보 등 여러 종류의 데이터를 하나의 메시지로 전송하고 싶을 때 유용함
+ - 시스템 간 통신을 위한 특별한 프로토콜이 필요할 때
+   - 특정 애플리케이션이나 하드웨어와의 통신을 위해 커스텀 프로토콜이 필요한 경우에 사용
 
+ ### Custom Message 만들기
 
+ ```bash
+ cd ~/ros2_ws/src
+ ros2 pkg create --build-type ament_cmake custom_interfaces --dependencies rclcpp std_msgs
+ ```
 
+ - 로봇의 상태를 요약하여 표현하기 위해 custon interface 패키지를 생성하기 위해 CMake 패키지를 만든다.
 
+ ```bash
+ cd ~/ros2_ws/src/custom_interfaces
+ mkdir msg
+ ```
 
+ - 새로운 패키지의 새 인터페이스를 만들기 위해 custom_interfaces 패키지 안의 msg 디렉토리 생성.
 
+ ```bash
+ float64 x
+ float64 y
+ float64 theta
+ int32 battery_percentage
+ float32 temperature
+ ```
+ - msg 디렉토리 안에 `RobotStatus.msg` 파일을 생성.
+ - 메시지 정의 내용으로는 x, y 위치 좌표와 theta 각, 배터리 상태 및 온도를 나타낸다.
 
+ ```bash
+ cmake_minimum_required(VERSION 3.8)
+ project(custom_interfaces)
+ 
+ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+   add_compile_options(-Wall -Wextra -Wpedantic)
+ endif()
+ 
+ # find dependencies
+ find_package(ament_cmake REQUIRED)
+ find_package(rclcpp REQUIRED)
+ find_package(std_msgs REQUIRED)
+ find_package(rosidl_default_generators REQUIRED)
+ # uncomment the following section in order to fill in
+ # further dependencies manually.
+ # find_package(<dependency> REQUIRED)
+ 
+ if(BUILD_TESTING)
+   find_package(ament_lint_auto REQUIRED)
+   # the following line skips the linter which checks for copyrights
+   # comment the line when a copyright and license is added to all source files
+   set(ament_cmake_copyright_FOUND TRUE)
+   # the following line skips cpplint (only works in a git repo)
+   # comment the line when this package is in a git repo and when
+   # a copyright and license is added to all source files
+   set(ament_cmake_cpplint_FOUND TRUE)
+   ament_lint_auto_find_test_dependencies()
+ endif()
+ 
+ rosidl_generate_interfaces(${PROJECT_NAME}
+   "msg/RobotStatus.msg"
+ )
+ 
+ ament_package()
+ ```
 
+ - `find_package()`
+   - 토픽, 서비스, 액션 메시지를 컴파일하는 데 필요한 종속성 패키지에 대해 기술한다.
 
+     `package.xml`의 `<build_depend>` 및 `<exec_depend>`에 해당되는 부분
 
+     - 위의 두 종속성을 묶어 `<depend>` 로 한번에 쓸 수 있다. 
+ - `rosidl_generate_interfaces()`
+    - 이 함수에는 컴파일할 이 패키지의 모든 인터페이스를 기술해준다.
+  
+ ```bash
+ <?xml version="1.0"?>
+ <?xml-model href="http://download.ros.org/schema/package_format2.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+ <package format="3">
+   <name>custom_interfaces</name> 
+   <version>0.0.0</version>
+   <description>TODO: Package description</description>
+   <maintainer email="ubuntu@todo.todo">ubuntu</maintainer>
+   <license>TODO: License declaration</license>
+ 
+   <buildtool_depend>ament_cmake</buildtool_depend>
+ 
+   <depend>rclcpp</depend>
+   <depend>std_msgs</depend>
+ 
+   <build_depend>rosidl_default_generators</build_depend>
+   <exec_depend>rosidl_default_runtime</exec_depend>
+   <member_of_group>rosidl_interface_packages</member_of_group>
+ 
+   <test_depend>ament_lint_auto</test_depend>
+   <test_depend>ament_lint_common</test_depend>
+ 
+   <export>
+     <build_type>ament_cmake</build_type>
+   </export>
+ </package>
+ ```
 
+ - package.xml 파일에 `<build_depend>` 빌드 의존성과 `<exec_depend>`실행 의존성 수정.
 
+ ```bash
+ cd ~/ros2_ws
+ colcon build --symlink-install --packages-select custom_interfaces
+ source install/local_setup.bash # 환경에 따라 local_setup.zsh
+ ```
 
+ - 패키지 빌드하여 새 인터페이스 생성. 
 
+ ```bash
+ ros2 interface show custom_interfaces/msg/RobotStatus
+ ```
+ <div align="left">
+  <img src="https://github.com/user-attachments/assets/4fdd0f02-ee68-4946-a8ff-7708f2615801" height="150" width="450">
+</div>
+
+ - 메시지가 성공적으로 생성 되었는지 확인을 위해 `ros2 interface show` 명령어 실행
+
+ 
 
 
 
@@ -687,5 +802,15 @@
 
 
 ![image]()
-![image]()
-![image]()
+![image](https://github.com/user-attachments/assets/51e0af23-1b84-4325-b6f4-9aa6638d62d8)
+![image](https://github.com/user-attachments/assets/d27091c0-9c1b-4b00-b174-4660b485e8ed)
+
+
+
+
+
+
+
+
+
+
