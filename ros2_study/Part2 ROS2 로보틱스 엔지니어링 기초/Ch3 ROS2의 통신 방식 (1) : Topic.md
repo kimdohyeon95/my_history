@@ -508,4 +508,184 @@
 
    터미널에서 tiago_gazebo 로봇 전방의 가장 가까운 장애물까지의 거리와 각도 정보가 주기적으로
 
-   출력되는 것을 확인할 수 있다. 
+   출력되는 것을 확인할 수 있다.
+
+## Ch03-05. (실습) Topic Programming (3) - Publisher & Subscriber
+---
+
+ ### Topic Publisher & Subscriber Node
+
+ ```bash
+ ros2 launch tiago_gazebo tiago_gazebo.launch.py is_public_sim:=True
+ ```
+
+ - tiago_gazebo 시뮬레이션 환경을 열어준다. 
+
+ ```bash
+ import rclpy
+ from rclpy.node import Node
+ from sensor_msgs.msg import LaserScan
+ from geometry_msgs.msg import Twist
+ import math
+ 
+ class ContinuousWallFinder(Node):
+     def __init__(self):
+         super().__init__('continuous_wall_finder')
+ 
+         # Subscriber 생성
+         self.subscription = self.create_subscription(
+             LaserScan,
+             '/scan_raw',
+             self.lidar_callback,
+             10)
+ 
+         # Publisher 생성
+         self.publisher = self.create_publisher(Twist, '/cmd_vel', 10)
+ 
+         # 타이머 생성 (10Hz로 동작)
+         self.timer = self.create_timer(0.1, self.timer_callback)
+ 
+         # 로봇의 상태
+         self.state = 'FIND_WALL'
+ 
+         # 전방 거리
+         self.front_distance = float('inf')
+ 
+         self.get_logger().info('Continuous Wall Finder node has been started')
+ 
+     def lidar_callback(self, msg):
+         # 전방 30도(-15도에서 15도까지) 범위의 데이터 처리
+         front_ranges = msg.ranges[len(msg.ranges)//2-15:len(msg.ranges)//2+15]
+ 
+         # 무한대 값과 0값을 제외한 유효한 거리 값 찾기
+         valid_ranges = [r for r in front_ranges if r != float('inf') and r != 0.0]
+ 
+         if valid_ranges:
+             self.front_distance = min(valid_ranges)
+         else:
+             self.front_distance = float('inf')
+ 
+     def timer_callback(self):
+         msg = Twist()
+ 
+         if self.state == 'FIND_WALL':
+             if self.front_distance > 4.0:
+                 # 좌회전
+                 msg.linear.x = 0.7
+                 msg.angular.z = 0.5
+             else:
+                 self.state = 'MOVE_TO_WALL'
+                 self.get_logger().info('Wall found. Moving towards it.')
+ 
+         elif self.state == 'MOVE_TO_WALL':
+             if self.front_distance > 0.5:
+                 msg.linear.x = 0.4  # 천천히 전진
+             else:
+                 self.state = 'FIND_NEXT_WALL'
+                 self.get_logger().info('Reached wall. Finding next wall.')
+ 
+         elif self.state == 'FIND_NEXT_WALL':
+             msg.angular.z = 0.7  # 좌회전
+             if self.front_distance > 4.0:
+                 self.state = 'FIND_WALL'
+                 self.get_logger().info('Found open space. Searching for next wall.')
+ 
+         self.publisher.publish(msg)
+         self.get_logger().info(f'State: {self.state}, Front distance: {self.front_distance:.2f}m')
+ 
+ def main(args=None):
+     rclpy.init(args=args)
+     continuous_wall_finder = ContinuousWallFinder()
+     rclpy.spin(continuous_wall_finder)
+     continuous_wall_finder.destroy_node()
+     rclpy.shutdown()
+ 
+ if __name__ == '__main__':
+     main()
+
+ - `tutorial_topic/tutorial_topic/continuous_wall_finder.py` 파일을 생성하고 위 코드를 작성
+ - `ContinuousWallFinder` 클래스
+   - `LaserScan` 메시지를 구독하여 라이다 데이터를 처리
+   - `Twist` 메시지를 발행하여 로봇의 이동을 제어
+   - 상태 기계(state machine)을 사용하여 로봇의 동작을 제어
+ - `lidar_callback` 함수
+   - 라이다 데이터를 처리하여 전방 장애물까지의 거리를 계산
+ - `timer_callback` 함수
+   - 로봇의 현재 상태에 따라 로봇의 이동 명령을 생성하고 발행
+   - `'FIND_WALL', 'MOVE_TO_WALL', 'FIND_NEXT_WALL'` 세 가지 상태를 순환적으로 관리
+
+
+- 시나리오
+  - 초기 상태:`FIND_WALL`
+    - 전방 거리가 4.0m 이상일 경우 => 좌회전
+    - 전방 거리가 4.0m 이하일 경우 => 벽 발견 및 상태 변경 (`MOVE_TO_WALL`)
+  - 상테:`MOVE_TO_WALL`
+    - 전방 거리가 0.5m 이상일 경우 => 천천히 전진
+    - 전방 거리가 0.5m 이하일 경우 => 정지 및 상태 변경 (`FIND_NEXT_WALL`)
+  - 상태:`FIND_NEXT_WALL`
+    - 로봇은 다음 벽을 찾기 위해 좌회전 수행
+    - 전방 거리 4.0m 이상일 경우 => 상태 변경(`FIND_WALL`)
+
+ ```bash
+ entry_points={
+     'console_scripts': [
+         'move_publisher = tutorial_topic.move_publisher:main',
+         'lidar_subscriber = tutorial_topic.lidar_subscriber:main',
+         'continuous_wall_finder = tutorial_topic.continuous_wall_finder:main',
+     ],
+ },
+ ```
+
+ - `tutorial_topic/setup.py` 파일을 열고 `entry_points` 섹션에 새로운 노드를 추가
+ 
+ ```bash
+ cd ~/ros2_ws
+ colcon build --symlink-install --packages-select tutorial_topic
+ source install/local_setup.bash # 환경에 따라 local_setup.zsh
+ ```
+
+ - 워크 스페이스 루트 디렉토리 이동 및 패키지 다시 빌드
+
+ ```bash
+ ros2 run tutorial_topic continuous_wall_finder
+ ```
+ <div align="left">
+  <img src="https://github.com/user-attachments/assets/6c5f4f32-93ef-48ac-a262-e04649a59e7a" height="350" width="500">
+</div>
+
+ <div align="left">
+  <img src="https://github.com/user-attachments/assets/cd4b91b4-32c5-4fd0-ac75-3b2bb7abb8a0" height="350" width="500">
+</div>
+
+ <div align="left">
+  <img src="https://github.com/user-attachments/assets/4bd52544-2069-4992-bd20-b40fea11692b" height="350" width="500">
+</div>
+
+ - `continuous_wall_finder` node 를 실행 하면 tiago_gazebo 시뮬레이션 에서 로봇이 lidar 데이터에 따라
+
+   상태를 변경해가며 벽을 찾아 이동하는 것을 확인 할 수 있다. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+![image]()
+![image]()
+![image]()
