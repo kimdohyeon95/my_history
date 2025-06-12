@@ -182,9 +182,9 @@
   <img src="https://github.com/user-attachments/assets/cb252ac3-9312-41c9-ab23-9d5d4b838f1d" height="350" width="500">
 </div>
 
-  - tiago_gazebo를 실행하여 ros2 topic publish 명령어로 /cmd_vel 토픽에 선속도 linear_x 축 선속도 0.1 angular_z 축 회전속도 1.0 의
-
-    속도를 퍼블리쉬 한다.
+  - tiago_gazebo를 실행하여 ros2 topic publish 명령어로 `/cmd_vel` 토픽에
+  
+    선속도 linear_x 축 선속도 0.1 angular_z 축 회전속도 1.0 의 속도를 퍼블리쉬 한다.
   - 주요 옵션으로 `-r, --rate <rate>` 를 사용하여 지정된 주기(Hz)로 메시지를 발행할 수 있다.
   - 또한 `-1, --once`를 사용하여 메시지를 한 번만 발행하고 종료한다. 
 
@@ -219,6 +219,7 @@
   <div align="left">
   <img src="https://github.com/user-attachments/assets/2c4d68e8-c9ae-4961-9a23-3a125aa31729" height="200" width="500">
 </div>
+
   - topic의 발행 빈도를 hz단위로 측정
 
   #### bw 
@@ -226,7 +227,7 @@
   ```bash
   ros2 topic bw <topic_name>
   ```
-  <div align="left">
+ <div align="left">
   <img src="https://github.com/user-attachments/assets/bd8736ad-26c9-47ef-b0f7-fe893fd2cc63" height="350" width="500">
 </div>
 
@@ -310,13 +311,15 @@
  ```
 
  - `tutorial_topic/tutorial_topic/move_publisher.py` 파일을 생성하고 위의 코드를 작성.
- - `create_publisher` 함수의 인자 중 첫번째는 interface의 타입으로 cmd_vel 토픽의 타입은 `Twist`를 의미한다.
+ - `create_publisher` 함수의 인자 중 첫번째는 interface의 타입으로 `/cmd_vel` 토픽의 타입은
 
-    두번째 인자는 사용할 topic 의 이름이 들어가고 세번째 인자는 Queue의 Size를 지정하는 것인데, 네트워크 환경에 따라
+   `Twist`를 의미한다.
 
-    데이터 전송량이 많을 경우 Queue 스택에 몇개의 topic을 저장할 것인지 지정하고 환경이 원활할 경우, 저장된 topic을
+    두번째 인자는 사용할 topic 의 이름이 들어가고 세번째 인자는 Queue의 Size를 지정하는 것인데,
 
-    전송하는데 사용된다. 
+    네트워크 환경에 따라 데이터 전송량이 많을 경우 Queue 스택에 몇개의 topic을 저장할 것인지 지정하고
+
+    환경이 원활할 경우, 저장된 topic을 전송하는데 사용된다. 
 
  ```bash
  from setuptools import setup
@@ -369,7 +372,9 @@
   <img src="https://github.com/user-attachments/assets/92644137-e05d-49b7-b815-4998fac198ad" height="200" width="500">
 </div>
 
- - tiago_gazebo 시뮬레이션을 실행하면 시뮬레이션에서 로봇이 5초 동안 전진했다가 5초 동안 후진하는 것을 반복하는 것을 확인할 수 있다.
+ - tiago_gazebo 시뮬레이션을 실행하면 시뮬레이션에서 로봇이 5초 동안 전진했다가 5초 동안 후진하는 것을
+
+   반복하는 것을 확인할 수 있다.
  - 새 터미널을 열고 `ros2 topic echo` 명령어로 발행되는 메시지를 확인할 수 있다.
  
 ## Ch03-04 (실습) Topic Programming (2) - Subscriber
@@ -602,6 +607,7 @@
  
  if __name__ == '__main__':
      main()
+ ```
 
  - `tutorial_topic/tutorial_topic/continuous_wall_finder.py` 파일을 생성하고 위 코드를 작성
  - `ContinuousWallFinder` 클래스
@@ -794,16 +800,93 @@
 
  - 메시지가 성공적으로 생성 되었는지 확인을 위해 `ros2 interface show` 명령어 실행
 
+ ### Custom Message를 사용한 프로그래밍 
+
+ ```bash
+ cd ~/ros2_ws/src
+ ros2 pkg create --build-type ament_python custom_interface_example --dependencies rclpy custom_interfaces
+ ```
+
+ - `custom_interface_example`라는 이름의 새 패키지를 생성
+ - 위에서 만든 사용자 지정 인터페이스를 사용하기 위해 새 패키지의 종속성으로 `custom_interface` 패키지를 추가
+
+ ```bash
+ import rclpy
+ from rclpy.node import Node
+ from custom_interfaces.msg import RobotStatus
+ import random
  
+ class RobotStatusPublisher(Node):
+     def __init__(self):
+         super().__init__('robot_status_publisher')
+         self.publisher_ = self.create_publisher(RobotStatus, 'robot_status', 10)
+         self.timer = self.create_timer(1.0, self.timer_callback)
+         self.get_logger().info('Robot Status Publisher has been started')
+ 
+     def timer_callback(self):
+         msg = RobotStatus()
+         msg.x = random.uniform(-10.0, 10.0)
+         msg.y = random.uniform(-10.0, 10.0)
+         msg.theta = random.uniform(-3.14, 3.14)
+         msg.battery_percentage = random.randint(0, 100)
+         msg.temperature = random.uniform(0.0, 50.0)
+ 
+         self.publisher_.publish(msg)
+         self.get_logger().info(f'Publishing: x={msg.x:.2f}, y={msg.y:.2f}, theta={msg.theta:.2f}, battery={msg.battery_percentage}%')
+ 
+ def main(args=None):
+     rclpy.init(args=args)
+     robot_status_publisher = RobotStatusPublisher()
+     rclpy.spin(robot_status_publisher)
+     robot_status_publisher.destroy_node()
+     rclpy.shutdown()
+ 
+ if __name__ == '__main__':
+     main()
+ ```
 
+ - 패키지의 `custom_interface_example` 디렉토리에 `robot_status_publisher.py`파일 작성 
+ - `RobotStatusPublisher` 클래스
+   - 생성자에 앞전에 만들었던 `custom_interface` 패키지의 정의했던 메시지 토픽 발행을 위한 `create_publisher`함수에
 
+     RobotStatus 라는 interface type에 `robot_status`라는 토픽 이름으로 publisher 생성
+   - `timer_callback` 함수로 x, y 위치 좌표 및 theta, 배터리 및 온도 상태 정보를 담아 토픽을 1초 주기로 발행.
 
+ ```bash
+ entry_points={
+     'console_scripts': [
+         'robot_status_publisher = custom_interface_example.robot_status_publisher:main',
+     ],
+ },
+ ```
 
+ - `custom_interface_example/setup.py` 파일을 열고 `entry_points` 섹션에 새로운 노드를 추가
 
+ ```bash
+ cd ~/ros2_ws
+ colcon build --symlink-install --packages-select custom_interface_example
+ source install/local_setup.bash # 환경에 따라 local_setup.zsh
+ ```
 
-![image]()
-![image](https://github.com/user-attachments/assets/51e0af23-1b84-4325-b6f4-9aa6638d62d8)
-![image](https://github.com/user-attachments/assets/d27091c0-9c1b-4b00-b174-4660b485e8ed)
+ - 워크스페이스 루트 디렉토리에서 패키지 다시 빌드.
+
+ ```bash
+ ros2 run custom_interface_example robot_status_publisher
+ ```
+ <div align="left">
+  <img src="https://github.com/user-attachments/assets/51e0af23-1b84-4325-b6f4-9aa6638d62d8" height="250" width="450">
+</div>
+ 
+ - `robot_status_publisher` 노드를 실행하여 `custom_interface` 패키지에서 정의한 메시지를 발행하는지 결과 확인. 
+
+ ```bash
+ ros2 topic echo /robot_status
+ ```
+ <div align="left">
+  <img src="https://github.com/user-attachments/assets/d27091c0-9c1b-4b00-b174-4660b485e8ed" height="200" width="450">
+</div>
+
+ - `ros2 topic echo` 명령어로 만들어진 interface 타입대로 토픽을 구독하는지 확인. 
 
 
 
