@@ -389,44 +389,187 @@
  - 액션 클라이언트 노드를 실행하는 명령어에 시스템 변수 `reach_floor`를 넣어서 실행하면
 
    tiago_gazebo 시뮬레이션 환경에서 로봇팔이 바닥에 닿게 움직이는 액션 동작을 수행하는 것 확인 가능. 
+
+## Ch05-04. (실습) Action Programming (2) - Server
+---
+
+ ### Action Server Node 
+
+ - 목표
+   - `turtlesim/action/RotateAbsolute` 액션 타입을 활용하여 tiago 로봇의 회전을 제어하는
+
+      액션 서버 노드 생성.
+
+ ```bash
+ ros2 interface show turtlesim/action/RotateAbsolute
+ ```
+ <div align="left">
+     <img src="https://github.com/user-attachments/assets/46277ea2-96f6-484f-aa8e-352ec44b4d49" height="200" width="450">
+ </div> 
  
+ - `turtlesim/action/RotateAbsolute` 타입은
+    -  goal : theta( 목표 회전 각 )
+    -  result : delta( 목표 회전각과 실제 회전각의 누적 차 )
+    -  feedback : remaining( 액션 수행 중, 목표 회전각 까지 남은 회전각 )
+  
+ ```bash
+ ros2 launch tiago_gazebo tiago_gazebo.launch.py is_public_sim:=True
+ ```
+
+ - `tiago_gazebo` 시뮬레이션 환경 실행.
+
+ ```bash
+ import rclpy
+ from rclpy.action import ActionServer
+ from rclpy.node import Node
+ from turtlesim.action import RotateAbsolute
+ from geometry_msgs.msg import Twist
+ import time
+ 
+ class RotateActionServer(Node):
+     def __init__(self):
+         super().__init__('rotate_action_server')
+ 
+         # Action server 초기화
+         self.action_server = ActionServer(
+             self,
+             RotateAbsolute,
+             'rotate_tiago',
+             self.execute_callback
+         )
+ 
+         # cmd_vel 퍼블리셔 설정
+         self.cmd_pub = self.create_publisher(Twist, 'cmd_vel', 10)
+ 
+         # 현재 회전 각도 변수
+         self.current_angle = 0.0
+ 
+     def execute_callback(self, goal_handle):
+         self.get_logger().info('Executing goal to rotate to angle: %f' % goal_handle.request.theta)
+ 
+         # 목표 각도와 현재 각도 차이 계산
+         target_angle = goal_handle.request.theta
+         angle_diff = target_angle - self.current_angle
+ 
+         # 회전 방향 및 속도 설정
+         twist_msg = Twist()
+         twist_msg.angular.z = 0.5 if angle_diff > 0 else -0.5
+ 
+         # 피드백 메시지 초기화
+         feedback_msg = RotateAbsolute.Feedback()
+ 
+         # 목표 각도에 도달할 때까지 반복
+         while abs(angle_diff) > 0.01:
+             self.cmd_pub.publish(twist_msg)
+ 
+             # 각도 차이 업데이트
+             angle_diff -= 0.01 * twist_msg.angular.z  # 간단한 각도 차이 갱신
+ 
+             # 피드백 메시지 업데이트 및 publish
+             feedback_msg.remaining = abs(angle_diff)
+             goal_handle.publish_feedback(feedback_msg)
+ 
+             # 각도 도달 확인
+             if abs(angle_diff) <= 0.01:
+                 break
+ 
+             time.sleep(0.01)
+ 
+         # 목표에 도달하면 정지
+         twist_msg.angular.z = 0.0
+         self.cmd_pub.publish(twist_msg)
+ 
+         # 현재 각도 초기화
+         self.current_angle = 0.0
+ 
+         # 목표 도달 및 응답
+         goal_handle.succeed()
+         result = RotateAbsolute.Result()
+         result.delta = angle_diff
+ 
+         self.get_logger().info('Goal achieved with delta: %f' % result.delta)
+         return result
+ 
+ 
+ def main(args=None):
+     rclpy.init(args=args)
+     node = RotateActionServer()
+     rclpy.spin(node)
+     node.destroy_node()
+     rclpy.shutdown()
+ 
+ if __name__ == '__main__':
+     main()
+ ```
+
+ - `tutorial_action/tutorial_action/rotate_server.py` 파일을 생성하고 위의 코드 작성.
+ - `from turtlesim.action import RotateAbsolute`
+    - tiago 로봇 제어를 위한 `RotateAbsolute` 액션 타입 import  
+ - `RotateActionServer` 클래스
+    - ActionServer 객체 생성 시, 첫 번째 인자로 현재 노드 인스턴스 `self`,
+
+      두 번째 인자로 액션 타입 `RotateAbsolute`, 세 번째 인자로 액션 이름
+
+      `rotate_tiago` , 네 번째 인자로 액션 목표(Goal)를 수신할 때 호출되고
+
+      액션이 수행할 작업을 주요 기능으로 가진 콜백 함수이다. 
+    - 실제 로봇의 회전을 하기 위한 `/cmd_vel` 토픽의 publisher도 생성.
+    - `execute_callback` 함수
+      - 함수의 인자 `goal_handle`로 부터 goal 목표 회전각 theta 값을
+
+        받아오고 목표 회전각과 실제 회전각의 차이를 `angle_diff` 변수에 저장.
+      - 회전 명령 publish를 위한 `Twist` 타입 메시지를 생성해 주고,
+
+        `RotateAbsolute` 액션 타입으로 부터 feedback_msg 도 생성.
+      - while 루프문 안의 제어 주기를 0.01초로 설정하고 회전 명령 publish 및
+      
+        로봇의 실제 회전각과 목표 회전각 사이의 차이를 업데이트 한다.
+
+        또한 생성된 `feedback_msg`에 값을 넣어 `goal_handle`의 `publish_feedback`
+
+        함수로 피드백 메시지를 publish 한다.
+      - 동작 수행 완료 후 로봇을 정지시킨 뒤, goal_handle의 succeed 메서드를 통해 성공으로
+
+        설정하고 result 메시지 안에 적절한 값을 채워 반환 한다.
+
+ ```bash
+  entry_points={
+     'console_scripts': [
+         'play_motion_client = tutorial_action.play_motion_client:main',
+         'rotate_server = tutorial_action.rotate_server:main', # 추가!
+     ],
+ },
+ ```
+
+ - `tutorial_service/setup.py` 파일을 열고 `entry_points` 섹션에 새로운 노드를 추가
 
 
+ ```bash
+ colcon build --symlink-install --packages-select tutorial_action
+ ```
 
+ - 워크스페이스 루트 디렉토리에서 패키지 다시 빌드.
 
+ ```bash
+ ros2 run tutorial_action rotate_server
+ ```
 
+ - `ros2 run` 명령어로 `/rotate_tiago` 액션을 위한 서버 노드를 실행.
 
+ ```bash
+ ros2 action send_goal -f /rotate_tiago turtlesim/action/RotateAbsolute "{theta: 3.141592}"
+ ```
+ <div align="left">
+     <img src="https://github.com/user-attachments/assets/561dd6aa-0ee6-48bc-bd39-26412167d5d9" height="100" width="300">
+ </div> 
 
+<div align="left">
+     <img src="https://github.com/user-attachments/assets/5cb3054f-0486-4fb2-87cc-e3c2f84e89f5" height="280" width="450">
+ </div> 
 
+ - `ros2 action send_goal -f` 명령어로 tiago 로봇이 반시계 방향으로 180도 회전하고 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+   및 Action Client 노드에서 feedback 메시지가 수신되는지 확인
 
 
 
