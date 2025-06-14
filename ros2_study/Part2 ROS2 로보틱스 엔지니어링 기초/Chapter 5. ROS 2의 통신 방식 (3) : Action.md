@@ -196,6 +196,232 @@
 
     몸체를 낮추는 동작을 수행하는 것을 볼 수 있다.
 
+## Ch05-03. (실습) Action Programming (1) - Client
+---
+
+ ### Action Client Node 
+
+ - 목표
+   - `play_motion2_msgs/action/PlayMotion2` 타입의 `/play_motion2` 액션을 호출하는
+
+      액션 클라이언트 노드 생성
+
+ ```bash
+ ros2 launch tiago_gazebo tiago_gazebo.launch.py is_public_sim:=True 
+ ```
+
+ - tiago_gazebo 시뮬레이션 환경 실행. 
+
+ ```bash
+ ros2 pkg create --build-type ament_python tutorial_action --dependencies rclpy play_motion2_msgs
+ ```
+
+ - Action Client 노드 실습을 위한 패키지 생성 및 `/play_motion2` 액션을 사용하기 위한
+
+   `play_motion2_msgs` 인터페이스 종속성 추가. 
+
+ ```bash
+ import rclpy
+ from rclpy.node import Node
+ from rclpy.action import ActionClient
+ from play_motion2_msgs.action import PlayMotion2
+ import sys
+ 
+ class PlayMotionClient(Node):
+     def __init__(self):
+         super().__init__('play_motion_client')
+         self.action_client = ActionClient(
+             self,
+             PlayMotion2,
+             '/play_motion2',
+         )
+         self.get_logger().info('Play Motion Client has been started')
+ 
+     def send_goal(self, motion_name, skip_planning=False):
+         self.get_logger().info('Waiting for action server...')
+         self.action_client.wait_for_server()
+ 
+         # PlayMotion2 액션의 goal 메시지 생성
+         goal_msg = PlayMotion2.Goal()
+         goal_msg.motion_name = motion_name
+         goal_msg.skip_planning = skip_planning
+ 
+         self.get_logger().info(f'Sending goal: {motion_name} (skip_planning: {skip_planning})')
+ 
+         # 비동기로 goal 전송
+         self.send_goal_future = self.action_client.send_goal_async(
+             goal_msg,
+             feedback_callback=self.feedback_callback
+         )
+         self.send_goal_future.add_done_callback(self.goal_response_callback)
+ 
+     def goal_response_callback(self, future):
+         goal_handle = future.result()
+         if not goal_handle.accepted:
+             self.get_logger().error('Goal rejected')
+             return
+ 
+         self.get_logger().info('Goal accepted')
+         self.get_result_future = goal_handle.get_result_async()
+         self.get_result_future.add_done_callback(self.get_result_callback)
+ 
+     def get_result_callback(self, future):
+         result = future.result().result
+         if result.success:
+             self.get_logger().info('Motion completed successfully!')
+         else:
+             self.get_logger().error(f'Motion failed with error: {result.error}')
+ 
+         self.get_logger().info('Action completed')
+ 
+     def feedback_callback(self, feedback_msg):
+         feedback = feedback_msg.feedback
+         # 현재 시간 출력 (초와 나노초)
+         self.get_logger().info(
+             f'Current time - sec: {feedback.current_time.sec}, '
+             f'nanosec: {feedback.current_time.nanosec}'
+         )
+ 
+ def main(args=None):
+     rclpy.init(args=args)
+     action_client = PlayMotionClient()
+ 
+     # 명령줄 인자 처리
+     motion_name = 'home'  # 기본값
+     skip_planning = False  # 기본값
+ 
+     if len(sys.argv) > 1:
+         motion_name = sys.argv[1]
+     if len(sys.argv) > 2:
+         skip_planning = sys.argv[2].lower() == 'true'
+ 
+     try:
+         action_client.send_goal(motion_name, skip_planning)
+         rclpy.spin(action_client)
+     except KeyboardInterrupt:
+         action_client.get_logger().info('Keyboard interrupt received, shutting down...')
+     finally:
+         rclpy.shutdown()
+ 
+ if __name__ == '__main__':
+     main()
+ ```
+
+ - `from play_motion2_msgs.action import PlayMotion2`
+    - tiago 로봇 모션제어를 위한 `PlayMotion2` 액션 타입 import
+ - `PlayMotionClient` 클래스
+    - ActionClient 객체 생성 시 인자로 첫번째 현재 노드 인스턴스로 self,
+
+      두번째 인자로 사용할 액션 타입 PlayMotion2, 세번째 인자로 액션 서버의
+
+      이름인 `/play_motion2`를 넣어준다.
+    - `send_goal` 함수
+       - ActionClient 객체인 `_action_client`에서 `wait_for_server`
+
+         함수를 호출하여 클라이언트에서 요청을 보내려고 하는 서버가 사용가능한지 확인.
+       - `PlayMotion1.Goal()`객체 생성을 통해 `goal_msg`를 생성하고
+
+          메시지 형식에 따라 `goal_msg.motion_name`과 `goal_msg.skip_planning`
+
+          변수에 필요한 값 대입.
+       - `send_goal_async()`함수를 통해 작성한 goal 메시지 전송 및 feedback_callback
+
+          함수를 등록하여 액션 서버 쪽에서 보내는 feedback을 받는다.
+
+          비동기로 전송하였기 때문에, goal을 받기 위한 핸들러 역할을 하는 `send_goal_future`에
+
+          반환값을 받는다.
+       - `send_goal_future` 객체에 추가로 `goal_response_callback`이라는 콜백함수를 동록.
+
+          `goal_response_callback` 함수는 액션을 수행했을 때의 결과가 아닌 액션 서버 쪽에서
+
+          클라이언트가 보낸 goal 메시지의 승낙 여부를 체크하는 함수이다.
+    - `goal_response_callback` 함수
+       - goal 메시지가 처리될 때 트리거 발생.
+       - 서버가 goal 메시지를 수락했는지 확인하고 거부되었을 경우 메시지를 인쇄
+       - 목표가 수락되면 `goal_result_async`함수로 결과를 요청하고, 이 함수는
+
+         결과가 준비되면 완료될 퓨처를 반환하고 이를 `get_result_future`에 저장.
+       - `get_result_future` 객체는 액션 수행이 완료될 때 트리거될 콜백 함수도
+
+          할당해야 한다. 이 함수를 `get_result_callback`이라고 한다.
+    - `get_result_callback` 함수
+       - 액션 수행 결과를 받아 성공/실패 여부를 확인하고, 결과에 따른 적절한 로그 메시지를 출력.
+    - `feedback_callback` 함수
+       - 액션 수행 중 서버로부터 받는 피드백 메시지를 처리할 수 있다.
+       - 그러나, 액션 서버에서 feedback 을 보내주지 않으면 interface에 feedback이 정의
+
+         되어있어도 동작하지 않는다.
+ - `main` 함수
+   - `PlayMotionClient` 클래스의 인스턴스를 생성하고 터미널 명령줄 인자를 통해
+
+      goal_msg 형식에 넣을 `motion_name`이름을 받는다.
+   - `send_goal` 함수를 호출하여 모션 실행을 요청
+   - `rclpy.spin`으로 노드를 실행하여 콜백들이 처리 될 수 있도록 한다. 
+ 
+ ```bash
+ entry_points={
+     'console_scripts': [
+         'play_motion_client = tutorial_action.play_motion_client:main',
+     ],
+ },
+ ```
+
+ - `tutorial_action/setup.py` 파일을 열고 `entry_points` 섹션에 새로운 노드를 추가
+
+ ```bash
+ colcon build --symlink-install --packages-select tutorial_action
+ ```
+
+ - 워크스페이스 루트 디렉토리에서 패키지를 다시 빌드. 
+
+ ```bash
+ ros2 run tutorial_action play_motion_client
+ ```
+ <div align="left">
+     <img src="https://github.com/user-attachments/assets/9be0a78a-9f8b-4b05-b73d-773bede9f3e5" height="300" width="550">
+ </div> 
+
+ <div align="left">
+     <img src="https://github.com/user-attachments/assets/d4c3eb11-676c-4edc-a6b8-afadb6720ce9" height="200" width="450">
+ </div> 
+
+ - 액션 클라이언트 노드를 실행하는 명령어에 시스템 변수 `reach_floor`를 넣어서 실행하면
+
+   tiago_gazebo 시뮬레이션 환경에서 로봇팔이 바닥에 닿게 움직이는 액션 동작을 수행하는 것 확인 가능. 
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
