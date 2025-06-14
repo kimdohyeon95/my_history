@@ -87,13 +87,114 @@
    - `ros2 interface show` 명령어로 인터페이스 정의 구조에 대해서도 알 수 있다.
    - 위와 같이 Action은 goal/result/feedback 세 부분으로 나누어져 있는 것을 알 수 있다. 
 
-   ```bash
-   ```
+  #### send_goal 
+  
+  ```bash
+  ros2 action send_goal <action_name> <action_type> <values>
+  ```
 
-   ```bash
-   ```
+  - `ros2 action send_goal` 명령어로 액션 서버에 Goal(요청)을 보낼 수 있다.
+  -  위 명령어는 액션 클라이언트의 역할을 한다. 
+  
 
+  ```bash
+  ros2 action send_goal /play_motion2 play_motion2_msgs/action/PlayMotion2 "{motion_name: 'wave'}"
+  ```
+  
+  <div align="left">
+     <img src="https://github.com/user-attachments/assets/a65bfacf-4198-46bf-b07e-1497b47d35fb" height="350" width="550">
+   </div> 
+
+ <div align="left">
+     <img src="https://github.com/user-attachments/assets/80423d78-2b9b-42b2-ad33-328bcf42b23d" height="280" width="550">
+ </div> 
+
+ - tiago_gazebo 시뮬레이션 환경을 실행하여 백그라운드에서 실행되는 액션 서버들 중에서
+
+   `play_motion2_msgs/action/PlayMotion2` 인터페이스 타입을 가진 `/play_motion2` 액션이 있다.
+ - `ros2 action send_goal` 명령어로 `/play_motion2` 액션에 Goal을 요청하면
+
+ - tiago 로봇의 로봇팔이 움직이는 동작과 함께 완료시 서버 측에 `Goal reached, success` 문장과 동시에
+
+   클라이언트 측에 `Result:success` 가 날라가는 것을 볼 수 있다.   
+
+  ```bash
+  ros2 action send_goal -f /torso_controller/follow_joint_trajectory control_msgs/action/     FollowJointTrajectory "{trajectory: {joint_names: ['torso_lift_joint'], points: [{positions: [0.35], time_from_start: {sec: 3}}]}}"
+  ```
+<div align="left">
+  <img src="https://github.com/user-attachments/assets/4b4f79be-53c4-456f-b771-24a0c502aaa1" height="280" width="550">
+</div>
+
+ - `ros2 action send_goal` 명령어에 `-f` 또는 `--feedback` 옵션을 붙이면 액션 동작 수행중에
+
+   feedback 데이터를 모니터링 할 수 있다. 
+
+
+  ```bash
+  ros2 action send_goal /gripper_controller/follow_joint_trajectory control_msgs/action/FollowJointTrajectory "{trajectory: {joint_names: ['gripper_left_finger_joint', 'gripper_right_finger_joint'], points: [{positions: [0.01, 0.01], time_from_start: {sec: 2}}]}}"
+  ```
+   <div align="left">
+     <img src="https://github.com/user-attachments/assets/68692dbd-f5df-4c53-a8b4-48129fae3ed3" height="350" width="550">
+ </div>
+
+ - `ros2 action send_goal` 명령어로 tiago 로봇의 gripper를 닫는 동작을 요청하면 시뮬레이션 환경에서
+
+   gripper가 닫히는 동작을 수행하는 것을 볼 수 있다. 
+  
+  ```bash
+  ros2 action send_goal /gripper_controller/follow_joint_trajectory control_msgs/action/FollowJointTrajectory "{trajectory: {joint_names: ['gripper_left_finger_joint', 'gripper_right_finger_joint'], points: [{positions: [0.04, 0.04], time_from_start: {sec: 2}}]}}"
+  ```
+   <div align="left">
+     <img src="https://github.com/user-attachments/assets/d0132132-a1b2-4b4c-baa3-cc87ec0f831a" height="350" width="550">
+ </div>
+
+ - `ros2 action send_goal` 명령어로 tiago 로봇의 gripper를 여는 동작을 요청하면 시뮬레이션 환경에서
+
+   gripper가 닫히는 동작을 수행하는 것을 볼 수 있다.
+
+  ```bash
+  ros2 action send_goal /head_controller/follow_joint_trajectory control_msgs/action/FollowJointTrajectory "{trajectory: {joint_names: ['head_1_joint', 'head_2_joint'], points: [{positions: [0.0, -0.5], time_from_start: {sec: 2}}]}}"
+  ```
+   <div align="left">
+     <img src="https://github.com/user-attachments/assets/ffc453f8-e079-4471-b83b-a899a6595039" height="350" width="550">
+ </div>
+
+- `ros2 action send_goal` 명령어로 tiago 로봇의 고개를 숙이는 동작을 요청하면 시뮬레이션 환경에서
+
+   고개를 숙이는 동작을 수행하는 것을 볼 수 있다.
+  
+  ```bash
+  ros2 action send_goal /head_controller/follow_joint_trajectory control_msgs/action/FollowJointTrajectory "{trajectory: {joint_names: ['head_1_joint', 'head_2_joint'], points: [{positions: [0.0, 0.5], time_from_start: {sec: 2}}]}}"
+  ```
+   <div align="left">
+     <img src="https://github.com/user-attachments/assets/d0b18b31-0d2c-46f5-9263-27afe9959891" height="350" width="550">
+ </div>
+
+ - `ros2 action send_goal` 명령어로 tiago 로봇의 고개를 드는 동작을 요청하면 시뮬레이션 환경에서
+
+    로봇의 고개를 드는 동작을 수행하는 것을 볼 수 있다.  
  
+  ```bash
+  ros2 action send_goal /torso_controller/follow_joint_trajectory control_msgs/action/FollowJointTrajectory "{trajectory: {joint_names: ['torso_lift_joint'], points: [{positions: [0.35], time_from_start: {sec: 3}}]}}"
+  ```
+   <div align="left">
+     <img src="https://github.com/user-attachments/assets/107a83a6-1810-4639-b9a2-6f8648439cfc" height="350" width="550">
+ </div>
+
+ - `ros2 action send_goal` 명령어로 tiago 로봇의 몸체를 올리는 동작을 요청하면 시뮬레이션 환경에서
+
+    몸체를 올리는 동작을 수행하는 것을 볼 수 있다.
+ 
+  ```bash
+  ros2 action send_goal /torso_controller/follow_joint_trajectory control_msgs/action/FollowJointTrajectory "{trajectory: {joint_names: ['torso_lift_joint'], points: [{positions: [0.0], time_from_start: {sec: 3}}]}}"
+  ```
+  <div align="left">
+     <img src="https://github.com/user-attachments/assets/77acdfa0-179e-40db-b501-a42d81570368" height="350" width="550">
+ </div> 
+
+ - `ros2 action send_goal` 명령어로 tiago 로봇의 몸체를 낮추는 동작을 요청하면 시뮬레이션 환경에서
+
+    몸체를 낮추는 동작을 수행하는 것을 볼 수 있다.
 
 
 
@@ -108,39 +209,5 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  ![image]()
-  ![image]()
-  ![image]()
-  ![image]()
-  ![image]()
-
-  
-  ![image](https://github.com/user-attachments/assets/a65bfacf-4198-46bf-b07e-1497b47d35fb)
-  ![image](https://github.com/user-attachments/assets/80423d78-2b9b-42b2-ad33-328bcf42b23d)
-  
-  ![image](https://github.com/user-attachments/assets/048e8f1c-1057-47f3-9d7b-0f89b8cce63e)
-
- ![image](https://github.com/user-attachments/assets/68692dbd-f5df-4c53-a8b4-48129fae3ed3)
-![image](https://github.com/user-attachments/assets/d0132132-a1b2-4b4c-baa3-cc87ec0f831a)
-![image](https://github.com/user-attachments/assets/ffc453f8-e079-4471-b83b-a899a6595039)
-![image](https://github.com/user-attachments/assets/d0b18b31-0d2c-46f5-9263-27afe9959891)
-![image](https://github.com/user-attachments/assets/107a83a6-1810-4639-b9a2-6f8648439cfc)
-![image](https://github.com/user-attachments/assets/77acdfa0-179e-40db-b501-a42d81570368)
 
 
