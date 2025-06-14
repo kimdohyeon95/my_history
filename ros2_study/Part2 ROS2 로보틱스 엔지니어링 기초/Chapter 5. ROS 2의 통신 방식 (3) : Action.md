@@ -571,12 +571,141 @@
 
    및 Action Client 노드에서 feedback 메시지가 수신되는지 확인
 
+## Ch05-05. (실습) Interface Programming - Action
+---
+
+ ### Custom Action 만들기 
+
+ - 목표
+   - 지난 실습에서 사용했던 액션 인터페이스인 `turtlesim/action/RotateAbsolute`를
+
+     거의 그대로 활용하여 커스텀 액션 작성.
+   - 기존 포맷에서 성공 여부를 나타내는 `success`만 result에 추가
+
+ ```bash
+ cd ~/ros2_ws/src/custom_interfaces
+ mkdir action
+ cd action
+ touch RotateAbsolute.action
+ ```
+
+ - 기존에 만들었던 `custom_interfaces` 패키지에서 `action` 디렉토리 생성.
+ - `RotateAbsolute.action` 파일 생성.
+
+ ```bash
+ float32 theta
+ ---
+ float32 delta
+ bool success # 추가
+ ---
+ float32 remaining
+ ```
+
+ - `RotateAbsolute.action` 파일에 goal/result/feedback 섹션 정의 
 
 
+ ```bash
+ cmake_minimum_required(VERSION 3.8)
+ project(custom_interfaces)
+ 
+ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+   add_compile_options(-Wall -Wextra -Wpedantic)
+ endif()
+ 
+ # find dependencies
+ find_package(ament_cmake REQUIRED)
+ find_package(rclcpp REQUIRED)
+ find_package(std_msgs REQUIRED)
+ find_package(rosidl_default_generators REQUIRED)
+ # uncomment the following section in order to fill in
+ # further dependencies manually.
+ # find_package(<dependency> REQUIRED)
+ 
+ if(BUILD_TESTING)
+   find_package(ament_lint_auto REQUIRED)
+   # the following line skips the linter which checks for copyrights
+   # comment the line when a copyright and license is added to all source files
+   set(ament_cmake_copyright_FOUND TRUE)
+   # the following line skips cpplint (only works in a git repo)
+   # comment the line when this package is in a git repo and when
+   # a copyright and license is added to all source files
+   set(ament_cmake_cpplint_FOUND TRUE)
+   ament_lint_auto_find_test_dependencies()
+ endif()
+ 
+ rosidl_generate_interfaces(${PROJECT_NAME}
+   "msg/RobotStatus.msg"
+   "srv/MoveRobot.srv"
+   "action/RotateAbsolute.action" # 추가!
+ )
+ 
+ ament_package()
+ ```
+
+ - `custom_interfaces/CMakeLists.txt` 파일에 새로운 액션 추가
+
+ ```bash
+ colcon build --symlink-install --packages-select custom_interfaces
+ ```
+
+ - 워크스페이스 루트 디렉토리에서 패키지 빌드. 
 
 
+ ```bash
+ ros2 interface show custom_interfaces/action/RotateAbsolute
+ ```
+ <div align="left">
+     <img src="https://github.com/user-attachments/assets/8b4e7808-643b-4213-bbd4-7c36ed671745" height="280" width="450">
+ </div> 
+
+ - `ros2 interface show` 명령어로 정의된 action 인터페이스가 생성되었는지 확인. 
+
+ ### Custom Action을 사용한 프로그래밍
+ 
+ ```bash
+ ros2 launch tiago_gazebo tiago_gazebo.launch.py is_public_sim:=True
+ ```
+
+ - tiago_gazebo 시뮬레이션 실행. 
 
 
+ ```bash
+ # from turtlesim.action import RotateAbsolute 대신
+ from custom_interfaces.action import RotateAbsolute
+ ```
+
+ ```bash
+ # 목표 도달 및 응답
+ goal_handle.succeed()
+ result = RotateAbsolute.Result()
+ result.delta = angle_diff
+ result.success = True # 추가
+ ```
+
+ - 기존 코드의 `turtlesim/action/RotateAbsolute` 인터페이스 대신 새로 만든
+   `custom_interfaces/action/RotateAbsolute` 인터페이스 타입으로 수정.
+ - goal 목표 도달 시, result 핸들러에 success 성공 여부 데이터 추가 
+
+ ```bash
+ ros2 run tutorial_action rotate_server
+ ```
+
+ - 새로 정의한 액션 인터페이스 테스트를 위해 rotate_server 노드 실행. 
+
+ ```bash
+ ros2 action send_goal -f /rotate_tiago custom_interfaces/action/RotateAbsolute "{theta: 1.5708}"
+ ```
+ <div align="left">
+     <img src="https://github.com/user-attachments/assets/27fdaa0d-d9ff-4b55-ba48-d297cc4b8483" height="80" width="270">
+ </div>
+
+ <div align="left">
+     <img src="https://github.com/user-attachments/assets/9e662856-4d8e-47b5-82a3-7d36885c033d" height="250" width="450">
+ </div>
+
+ - `ros2 action send_goal` 명령어를 실행하여 새롭게 정의된 인터페이스로 액션 요청 시, tiago 로봇이 동작하는지
+
+   확인 및 새롭게 추가된 result 섹션의 success 데이터가 goal 수행 완료 시, 출력되는지 확인. 
 
 
 
