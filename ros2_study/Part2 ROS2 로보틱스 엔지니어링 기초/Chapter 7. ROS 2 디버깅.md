@@ -54,7 +54,145 @@
      <img src="https://github.com/user-attachments/assets/0e2bf227-ebbb-411c-87d0-7e18ccba5e09" height="350" width="600">
    </div>
 
+## Ch07-02. (실습) Logger
+--- 
+
+ ### Logger 활용 실습
+
+ ```bash
+ ros2 pkg create --build-type ament_python logger_test --dependencies rclpy
+ ```
+
+ - 
+
+ ```bash
+ import rclpy
+ from rclpy.node import Node
+ 
+ class LogDemo(Node):
+     def __init__(self):
+         # call super() in the constructor in order to initialize the Node object
+         # the parameter we pass is the node name
+         super().__init__('logger_example')
+         # Logger level configuration
+         rclpy.logging.set_logger_level('logger_example', rclpy.logging.LoggingSeverity.DEBUG)
+         # create a timer sending two parameters:
+         # - the duration between 2 callbacks (0.2 seeconds)
+         # - the timer function (timer_callback)
+         self.create_timer(0.2, self.timer_callback)
+ 
+     def timer_callback(self):
+         # print a ROS2 log debugging
+         self.get_logger().debug("print a ROS2 log debugging")
+         # print a ROS2 log info
+         self.get_logger().info("print a ROS2 log info")
+         # print a ROS2 log warning
+         self.get_logger().warn("print a ROS2 log warning")
+         # print a ROS2 log error
+         self.get_logger().error("print a ROS2 log error")
+         # print a ROS2 log fatal
+         self.get_logger().fatal("print a ROS2 log fatal")
+ 
+ def main(args=None):
+     # initialize the ROS communication
+     rclpy.init(args=args)
+     # declare the node constructor
+     log_demo = LogDemo()
+     # pause the program execution, waits for a request to kill the node (ctrl+c)
+     rclpy.spin(log_demo)
+     # shutdown the ROS communication
+     rclpy.shutdown()
+ 
+ if __name__ == '__main__':
+     main()
+ ```
+
+ - 패키지의 `logger_test` 디렉토리에 `log_demo.py`라는 새 파일을 생성 및 위의 코드 추가
+ - 0.2초 주기의 `timer_callback` 함수를 실행하여 ros2 logger의 debug 에서부터 fatal
+
+   단계 까지의 log를 출력함.
+ - `set_logger_level()` 함수를 이용하여 `rclpy.logging.LoggingSeverity.DEBUG` 처럼
+
+   인자 설정을 통해 `DEBUG/INFO/WARN/ERROR/FATAL` 출력되는 log의 레벨을 지정하여 출력 가능.
+ - ex) rclpy.logging.LoggingSeverity.INFO 의 경우 INFO를 포함한 그 이상의 Log 레벨에
+
+   대하여 터미널에 출력 한다는 의미. 
+ 
+ 
+ ```bash
+ entry_points={
+     'console_scripts': [
+         'log_demo = logger_test.log_demo:main',
+     ],
+ },
+ ```
+
+ - `logger_test/setup.py` 파일을 열고 `entry_points` 섹션에 새로운 노드를 추가
+ 
+
+ ```bash
+ cd ~/ros2_ws
+ colcon build --symlink-install --packages-select logger_test
+ source install/local_setup.bash # 환경에 따라 local_setup.zsh
+ ```
+
+ - 워크스페이스 루트 디렉토리에서 패키지를 다시 빌드
+
+
+ ```bash
+ ros2 run logger_test log_demo
+ ```
+
+ - 터미널에서 노드 실행 후 결과 확인.
+
+ <div align="left">
+     <img src="https://github.com/user-attachments/assets/1fdda4c3-7070-42bc-850d-96d15ce44658" height="350" width="400">
+   </div>
+
+ - DEBUG 레벨 부터 FATAL 레벨 까지의 Log 가 잘 출력되는 것을 확인 할 수 있다.
+
+ ```bash
+ rclpy.logging.set_logger_level('logger_name', rclpy.logging.LoggingSeverity.<LOG_LEVEL>)
+ ```
+
+ - `log_demo.py`에서 로그 레벨을 변경하고 선택한 레벨에 따라 다른 메시지가 인쇄되는지 여부를 확인
+ - `rclpy.logging.LoggingSeverity.WARN` 로 변경 후 결과를 확인
+
+ <div align="left">
+     <img src="https://github.com/user-attachments/assets/299c2a6a-520b-41cf-990f-3a8efb0e1440" height="350" width="450">
+   </div>
+
+ - WARN 레벨 이상의 Log가 잘 출력되는 것을 알 수 있다. 
+ 
+ ```bash
+ export ROS_LOG_DIR=/path/to/custom/log/directory
+ ```
+
+ - 기본 로그 저장 위치
+   - Linux의 경우: ~/.ros/log 디렉토리
+ - 로그 위치 변경 방법
+   - 환경변수 ROS_LOG_DIR을 설정하여 다른 디렉토리로 변경 할 수 있다.
+   - ROS_LOG_DIR=""로 설정하면 파일 로깅을 비활성화할 수 있다.
 
 
 
-  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+![image]()
+![image]()
+
