@@ -261,4 +261,84 @@
 
      z축 회전만 가능하다. 
 
+## Ch07-04. (실습) RQt
+---
+
+ ### RQt의 다양한 플러그인들
+
+ <div align="left">
+      <img src="https://github.com/user-attachments/assets/bffe25d3-035e-4609-b3fa-ebb9d4e39a68" height="400" width="850">
+ </div>
  
+ ### 시뮬레이션 환경 열기
+
+ ```bash
+ ros2 launch tiago_gazebo tiago_gazebo.launch.py is_public_sim:=True
+ ```
+
+ ### 자주 사용되는 플러그인
+ 
+ - Configuration
+   - Dynamic Reconfigure
+     - Part 4의 Navigator 부분에서 파라미터 변경 시 학습 예정. 
+ - Introspection
+   - Node Graph
+     
+    <div align="left">
+      <img src="https://github.com/user-attachments/assets/a8231f22-5a08-4119-b163-a32910c073ef" height="400"                 width="850">
+     </div>
+ 
+     - Node/Topic (all)로 설정하면 현재 ROS2 시스템 상에서 등록된 모든 노드와  노드에서 나오는 토픽들을 보여준다.
+     - 원으로 된 형태는 Node 직사각형 안에 들어있는 것은 토픽을 의미.
+     - 어떤노드에서 토픽을 어떻게 가공되고 어느 노드에서 받아서 쓰는지를 알고 싶을 때 사용.  
+ - Services
+   - Service Caller
+
+   <div align="left">
+      <img src="https://github.com/user-attachments/assets/bf86ebf3-2bc9-46e4-a928-64afa6030e3d" height="400"                 width="850">
+    </div>
+
+   - 터미널 명령으로 ros2 service call 과 같이 서비스 호출하는 것을 간편하게 하기 위해 사용.
+   - 서비스 이름만 알고 있으면 해당 인터페이스 타입을 알 수 있어 값만 할당해주고 Call 버튼을 누르면 
+
+     아래 창에 Response를 받을 수 있다.
+ - Topics
+   - Message Publisher
+   <div align="left">
+      <img src="https://github.com/user-attachments/assets/6e6e2bdf-09f6-4092-aedb-5d4ba95280f9" height="400"                 width="850">
+    </div>
+
+    - ros2 시스템 상에서 활성화 되어있는 topic 들에 대해 간편하게 Publish 할 수 있는 기능이다. 
+    - 발행하고자 하는 Topic을 지정해 주면 자동으로 인터페이스 타입이 정해지고 토픽 주기와 값을
+
+      지정해주고 체크 박스를 클릭하면 발행된다. 
+    - 여러개의 토픽에 대해서 동시에 발행이 가능하다.     
+   - Topic Monitor
+   <div align="left">
+      <img src="https://github.com/user-attachments/assets/2c28ed71-cd05-4e64-bd91-84ffd62f5bf3" height="400"                 width="850">
+   </div>
+
+   - ros2 topic echo 명령어를 합쳐 놓은 것과 같아서 구독할 수 있는 모든 토픽에 대하여 나열 되어있다. 
+   - 구독하길 원하는 토픽을 체크한 뒤 어떤 값으로 얼마의 주기로 발행되는지 확인할 수 있다. 
+ - Visualization
+   - Image View
+   <div align="left">
+      <img src="https://github.com/user-attachments/assets/23d8e90b-4f80-43ff-9d86-0602ccd495a8" height="400"                 width="850">
+   </div>
+
+   - 로봇에 달린 카메라로 보여지는 시야를 볼 수 있다. 
+   - 로봇에 달린 카메라 관련 토픽을 선택하면 카메라 프레임 창이 띄워진다.   
+   - Plot
+   <div align="left">
+      <img src="https://github.com/user-attachments/assets/8e45ddd6-3437-4d07-8923-5c1f0ed50da3" height="400"                 width="850">
+   </div>
+
+   - 모니터링 할 특정 토픽 데이터(속도 정보, 배터리 상태 등) 에 대해 그래프화 하여 시간에 따라
+
+     변화 추이를 확인 할 수 있다. 
+   - TF Tree
+   <div align="left">
+      <img src="https://github.com/user-attachments/assets/cffdd109-d148-4e4f-9afe-932bea6bd9d1" height="400"                 width="850">
+   </div>
+
+   - rviz2 디스플레이 패널에 있는 모든 프레임들에 대한 관계를 tree 형식으로 나타낸다.  
