@@ -342,3 +342,113 @@
    </div>
 
    - rviz2 디스플레이 패널에 있는 모든 프레임들에 대한 관계를 tree 형식으로 나타낸다.  
+
+## Ch07-05. (실습) rosbag2
+---
+
+ ### rosbag2 
+
+  #### 시뮬레이션 환경 열기
+  ```bash
+  ros2 launch tiago_gazebo tiago_gazebo.launch.py is_public_sim:=True world_name:=empty.world
+  ```
+
+  #### Recording data 
+    
+  ```bash
+  ros2 bag record -a
+  ```
+
+  - 현재 시스템에서 사용 가능한 모든 토픽을 기록한다.
+  - 녹화하는 동안 새 토픽이 나타나면 이를 추가한다.
+    - 새 토픽 자동 검색 기능은 명령줄 인수 `--no-discovery` 를 지정하여 비활성화 가능.
+   
+  ```bash
+  ros2 bag record <topic 1> <topic 2> … <topic N>
+  ```
+
+  - 명령어에 지정된 토픽만 선택적으로 기록한다. 
+  - 지정된 토픽 중 하나가 나타나면 자동으로 인식되기 때문에 지정된 토픽이 녹화 시작 시점에 
+    
+    반드시 존재할 필요는 없다. 이 자동 기능은 마찬가지로 `--no-discovery`를 사용하여 비활성화할 수 있다.
+  - bag file 이름은 -o, --output으로 지정할 수 있으며, 추가로 지정하지 않으면 현재 타임스탬프로 명명된
+
+    새 폴더를 생성하고 이 폴더에 데이터를 저장한다.
+
+  #### Simulation time 
+
+  - ROS 2에서 Simulation time은 우리가 알고 있는 시간 체계를 사용하여 시간을 알려주는 대신 `/clock` 토픽으로
+
+    시간 값을 게시하는 것을 의미.
+  - ros2 bag record에 `--use-sim-time` 인수를 전달하면 레코드 노드에 대해 이 옵션을 켠다.
+    - 실제 세계의 시간이 아닌 시뮬레이션 시간 프레임에 맞추어 데이터를 기록해야 할 필요가 있을 때 이 옵션을 사용.
+    - 녹화 당시의 시간이 중요하다면 이 옵션을 사용하지 않아도 된다.
+
+  #### Splitting files during recording
+
+  - rosbag2는 bag 파일이 최대 크기에 도달하거나 지정된 기간이 지나면 분할하는 기능을 제공한다. 기본적으로 rosbag2는
+
+    모든 데이터를 단일 bag 파일에 기록하지만, CLI 옵션을 사용하여 이를 변경할 수 있다.
+    
+  ```bash
+  ros2 bag record -a -b 100000
+  ```
+
+  - 위 명령어는 bag 파일이 100kb보다 커지면 분할하도록 한다.
+  - 이 옵션의 기본값은 0이며, 이는 데이터가 단일 파일에 기록됨을 의미한다.
+    - 옵션을 사용할 경우 배치 크기의 단위는 바이트 단위이며 86016 보다 커야한다.
+   
+  ```bash
+  ros2 bag record -a -d 9000
+  ```
+
+  - 위 명령어는 9000초 후에 bag 파일을 분할하도록 힌다.
+  - 이 옵션의 기본값은 0으로, 데이터가 단일 파일에 기록된다는 의미이다.
+
+  #### Replaying data 
+
+  ```bash
+  ros2 bag play <bag>
+  ```
+
+  - 위 명령어로 저장된 bag 파일을 재생할 수 있다.
+  - <bag>에 가능한 인수는 아래 두 가지 이다.
+    - `metadata.yaml`과 하나 이상의 bag 파일이 포함된 디렉터리 이름
+    -  `*.mcap` 또는 `*.db3`와 같은 단일 저장 파일
+  - 주의 사항
+    - 실제 로봇 시뮬레이션을 실행 시켜놓고 bag 파일을 play 하면 안된다.
+    - 예를 들어, 2D 라이다 처럼 센서 데이터 같은 것들이 ros2 시스템 자체에서 출력되고 있고,
+
+      이 상황에서 play를 하게되면 현재 2D 라이다 데이터와 record 할 당시의 데이터가 중복이 된다. 
+    - 따라서 시뮬레이션을 모두 꺼놓은 상태로 play 해야한다.
+    - rviz2 툴로 토픽이 기록된 내용들을 디스플레이 패널에서 시각화하여 볼 수 있다. 
+  ```bash
+  -l, --loop               # 반복 재생
+  -r RATE, --rate RATE     # 재생 속도 조절 (예: 2.0 = 2배속)
+  --start-offset SEC       # 시작 시간 오프셋 설정 (초 단위)
+  -d SEC, --delay SEC      # 재생 시작 전 대기 시간
+  -s START, --start-paused # 일시정지 상태로 시작
+  ```
+
+  - 주요 옵션 플래그로는 위의 내용들이 있다.
+
+  #### Analyzing bag file
+
+  ```bash
+  ros2 bag info <bag_file>
+  ```
+
+  ```bash
+  Files:             demo_strings.db3
+  Bag size:          44.5 KiB
+  Storage id:        sqlite3
+  Duration:          8.501s
+  Start:             Nov 28 2018 18:02:18.600 (1543456938.600)
+  End                Nov 28 2018 18:02:27.102 (1543456947.102)
+  Messages:          27
+  Topic information: Topic: /chatter | Type: std_msgs/String | Count: 9 | Serialization Format: cdr
+                     Topic: /my_chatter | Type: std_msgs/String | Count: 18 | Serialization Format: cdr
+  ```
+
+  - `ros bag info` 명령어로 bag file 정보를 확인할 수 있다.
+  - 파일을 먼저 재생하지 않아도 내부 토픽 정보들을 확인할 수 있다는 장점이 있다. 
