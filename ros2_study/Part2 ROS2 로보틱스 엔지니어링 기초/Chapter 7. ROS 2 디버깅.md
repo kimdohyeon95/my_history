@@ -63,7 +63,7 @@
  ros2 pkg create --build-type ament_python logger_test --dependencies rclpy
  ```
 
- - 
+ - logger_test라는 이름의 새 패키지를 종속성으로 rclpy를 적용하여 생성.
 
  ```bash
  import rclpy
@@ -129,7 +129,6 @@
 
  - `logger_test/setup.py` 파일을 열고 `entry_points` 섹션에 새로운 노드를 추가
  
-
  ```bash
  cd ~/ros2_ws
  colcon build --symlink-install --packages-select logger_test
@@ -160,7 +159,7 @@
 
  <div align="left">
      <img src="https://github.com/user-attachments/assets/299c2a6a-520b-41cf-990f-3a8efb0e1440" height="350" width="450">
-   </div>
+ </div>
 
  - WARN 레벨 이상의 Log가 잘 출력되는 것을 알 수 있다. 
  
@@ -174,25 +173,92 @@
    - 환경변수 ROS_LOG_DIR을 설정하여 다른 디렉토리로 변경 할 수 있다.
    - ROS_LOG_DIR=""로 설정하면 파일 로깅을 비활성화할 수 있다.
 
+## Ch07-03. (실습) Rviz2
+---
 
+ ### Rviz2
 
+ - Rviz2는 이미지, 포인트 클라우드, 레이저, 운동 변환, 로봇 모델 등을 볼 수 있는 시각화 도구이다. 
+ - Rviz2는 주로 시뮬레이션 또는 실제 로봇의 퍼블리싱된 토픽을 시각화하는 목적으로 사용된다. 
 
+ ### 시뮬레이션 환경 열기
 
+ ```bash
+ ros2 launch tiago_gazebo tiago_gazebo.launch.py is_public_sim:=True world_name:=empty.world
+ ```
 
+ ### Rviz2 실습
 
+ ```bash
+ rviz2
+ ```
 
+ - rviz2 실행.
+   
+ <div align="left">
+     <img src="https://github.com/user-attachments/assets/8a42f2f2-8411-444e-b81a-4027c6fc70c8" height="500" width="850">
+   </div>
 
+   - 중앙 패널
+     - 데이터가 표시되는 곳으로 회전(마우스 왼쪽 클릭 드래그), 이동(마우스 휠 드래그 또는 Shift + 왼쪽 클릭 드래그),
 
+       확대/축소(마우스 오른쪽 클릭 드래그)를 할 수 있는 3D 공간.
 
+   - 디스플레이 패널
+     - 중앙 패널에서 시각화하려는 모든 요소를 관리/구성.
+       - `Global Option`에서 데이터 시각화 요구 사항에 가장 적합한 고정 프레임을 선택해야 한다. 고정 프레임은
 
+           모든 데이터를 비교할 기준이 되는 프레임.
+       - `Add` 버튼을 클릭하면 RVIZ2에서 시각화할 수 있는 모든 유형의 요소가 표시
 
+   - 뷰 패널
+     - 중앙 패널의 뷰를 전환할 수 있다. 
 
+ <div align="left">
+      <img src="https://github.com/user-attachments/assets/7fd2ca14-5d0a-4513-8722-881757f7d586" height="500" width="850">
+ </div>
 
+ <디스플레이 패널 > 
 
+ - Fixed Frame
+   - 어떤 프레임을 기준으로 시각화를 할 것인지 지정. 
+   - gazebo 시뮬레이션 환경 안에 있는 티아고 로봇의 joint 프레임으로 부터 가져온다. 
+   - fIxed_frame을 odom 으로 설정하면 odom 축을 기준으로 로봇이 움직이고 base_link(로봇의 몸통) 를 
 
+     fixed_frame 으로 변경하면 로봇이 가만히 있는 상태에서 주변 배경이 움직이게 된다. 
 
+ - Robot Model  
+   - 로봇 모델링을 위한 Topic 이나 File(URDF) 경로를 지정해주면 로봇 모델링이 시각화 되면서 각 TF에 
+     대한 이해를 도와준다.
 
+     ( **URDF : 로봇의 모델링에 대한 내용을 기술 해놓은 파일** )
 
-![image]()
-![image]()
+ - LaserScan 
+   - 라이다 데이터를 가져오기 위해서 디스플레이 패널 하단의 Add 버튼을 누른뒤 인터페이스 타입인 LaserScan으로
 
+     가져온 뒤 topic을  `/scan_raw`로 지정하여 가지고 오거나, 현재 시각화할 수 있는 topic들의 목록에서
+
+     `/scan_raw`를 찾아서 적용시키는 방법이 있다.
+   - 장애물이 감지되는 부분을 Point(점) 로, 중앙 패널에 표시된다.
+
+ - PointCloud 
+   - `/filtered_cloud` 토픽의 PointCloud 타입을 가져올 수 있다. PointCloud 데이터와 2D 라이다 데이터 간의 
+
+     위치 관계가 잘 나타내어져 있는지 확인 가능하다. 
+
+ - TF 
+   - 프레임들의 시각화를 해줄 때 사용하는 디스플레이 요소.
+
+ <뷰 프레임> 
+
+ - Target_Frame
+   - 로봇이 계속해서 이동하는 중에 로봇에 맞춰 시점을 계속해서 따라가게 해주기 위해 `Target_Frame`을 base_link로
+
+     지정해주면 된다. 
+
+ - Type
+   - 뷰 패널의 타입을 TopDownOtho로 할 경우, Top 뷰로 위에서 내려다보는 시점으로 변경 가능하며 
+
+     z축 회전만 가능하다. 
+
+ 
