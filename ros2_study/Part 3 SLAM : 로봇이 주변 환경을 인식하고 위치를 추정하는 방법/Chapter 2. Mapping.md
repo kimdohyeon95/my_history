@@ -58,7 +58,10 @@
   vcs import src < neuronbot2_ros2.repos
   ```
 
-  - 새로운 워크스페이스 `nav2_ws`를 생성하고 필요한 리소스들을 가져온다.  
+  - 새로운 워크스페이스 `nav2_ws`를 생성하고 필요한 리소스들을 가져온다.
+  - 어떤 특정 패키지를 빌드하기 위해서  여러가지 패키지가 들어 있을 수 있다. 그런 패키지를 사용할 때 vcs 명령어를
+
+    사용하여 한번에 내려 받을 수 있다.( git clone을 여러번 사용해서 repository로 부터  내려받아야 할 때)
 
   ```bash
   cd ~/nav2_ws/
@@ -107,9 +110,6 @@
   ```bash
   ros2 run teleop_twist_keyboard teleop_twist_keyboard
   ```
-  <div align="left">
-   <img src="(https://github.com/user-attachments/assets/e803b8f6-6aab-42f9-990b-e6bce8c6321d" height="350" width="600">
-  </div>
 
   - `teleop_twist_keyboard` 노드를 실행하여 위 gazebo 시뮬레이션 환경에서 로봇을 키보드로 제어할 수 있다.
 
@@ -147,3 +147,119 @@
   default=os.path.join(get_package_share_directory('neuronbot2_slam') , 'config'))
   configuration_basename = LaunchConfiguration('configuration_basename', default='cartographer.lua')
   ```
+
+  - `cartographer_node`의 arguments로 설정 파일의 경로`(-configuration_directory)`와 설정 파일의 이름`(-configuration_basename)`
+
+    포함되어야하기 때문에 아래 코드와 같이 사전에 정의를 해놓았다.
+
+  ```bash
+  include "map_builder.lua"
+  include "trajectory_builder.lua"
+  
+  options = {
+      map_builder = MAP_BUILDER,
+      trajectory_builder = TRAJECTORY_BUILDER,
+      map_frame = "map",
+      tracking_frame = "base_link",
+      published_frame = "odom",
+      odom_frame = "odom",
+      provide_odom_frame = false,
+      publish_frame_projected_to_2d = true,
+      use_odometry = true,
+      use_nav_sat = false,
+      use_landmarks = false,
+      num_laser_scans = 1,
+      num_multi_echo_laser_scans = 0,
+      num_subdivisions_per_laser_scan = 1,
+      num_point_clouds = 0,
+  ```
+
+  - 보통 ros2 에서는 config 파일로 yaml 파일을 많이 사용한다. catographer 의 경우에 .lua 확장자로 사용한다. 
+
+    주로 catographer 관련 설정을 다룬다.
+
+ ### Mapping 실습 
+
+  #### 실습 환경 구성
+
+  ```bash
+  cd ~/nav2_ws/src
+  git clone https://github.com/aws-robotics/aws-robomaker-bookstore-world.git -b ros2
+  ```
+
+  - `git clone`으로 시뮬레이션 환경을 내려받는다.
+
+  ```bash
+  cd ~/nav2_ws
+  colcon build --symlink-install --packages-select aws_robomaker_bookstore_world
+  ```
+
+  - 내려받은 `aws_robomaker_bookstore_world` 패키지만 따로 빌드.
+
+  ```bash
+  ros2 launch aws_robomaker_bookstore_world view_bookstore.launch.py
+  ```
+  <div align="left">
+   <img src="https://github.com/user-attachments/assets/1b3b9b4e-69f1-4a68-9014-4fd731a60c0a" height="350" width="600">
+  </div> 
+
+  - 새 터미널을 열고 시뮬레이션 환경이 잘 실행되는지 확인.
+
+  #### 시뮬레이션 환경에 neuronbot2을 spawn하기
+
+  - `~/nav2_ws/src/neuronbot2/neuronbot2_gazebo/launch/` 경로의 `neuronbot2_world.launch.py` 파일을 일부 수정
+
+  ```bash
+  world_model_path = os.path.join(get_package_share_directory('aws_robomaker_bookstore_world'), 'models')
+
+  if 'GAZEBO_MODEL_PATH' in os.environ:
+      os.environ['GAZEBO_MODEL_PATH'] += ":" + gazebo_model_path + ":" + world_model_path
+  else :
+      os.environ['GAZEBO_MODEL_PATH'] = gazebo_model_path
+  ```  
+  - `aws_robomaker_bookstore_world` 패키지의 models 디렉토리 안에 있는 모델들을 Gazebo가 읽을 수 있도록 환경변수에 추가.
+  - 환경변수 설정을 `.bashrc` 혹은 `.zsh` 파일에 등록할 수 있지만  launch 파일 내에서 gazebo 모델 경로 정의 와 환경 변수 등록을
+
+    해두면 launch 파일을 켤 때 환경 변수를 등록하였다가 launch 파일이 꺼지면 환경 변수에서 다시 빠지게 된다. 이로인해, gazebo 관리를
+
+    더욱 깔끔하게 할 수 있다.
+
+  ```bash
+  world = os.path.join(
+      get_package_share_directory('aws_robomaker_bookstore_world'),
+      'worlds',
+      'bookstore.world'
+  )
+  ```
+
+  - 일부 함수들을 활용해 월드 파일이 있는 경로를 수정.
+
+  ```bash
+  ros2 launch neuronbot2_gazebo neuronbot2_world.launch.py
+  ```
+
+  - neuronbot2가 bookstore.world에 잘 spawn되는지 위 명령어를 통해 확인
+
+  <div align="left">
+   <img src="https://github.com/user-attachments/assets/1524c317-27fb-4807-8110-b4764a200f64" height="350" width="600">
+  </div> 
+
+  #### Cartographer를 통한 SLAM 수행
+
+  ```bash
+  ros2 launch neuronbot2_slam cartographer_launch.py open_rviz:=true use_sim_time:=true
+  ```
+
+  - `neuronbot2_slam` 패키지의 launch 파일을 실행 할 때, rviz2 프로그램과 함께 실행되도록 하여
+
+    Mapping을 수행할 수 있다.
+
+  <div align="left">
+   <img src="https://github.com/user-attachments/assets/d69f0793-6d24-4f96-9765-cfef92c70142" height="350" width="600">
+  </div> 
+
+  ```bash
+  ros2 run teleop_twist_keyboard teleop_twist_keyboard
+  ```
+
+  - `teleop_twist_keyboard` 노드를 실행하여 키보드로 neuronbot2를 제어할 수 있도록 한다.
