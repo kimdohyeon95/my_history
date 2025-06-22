@@ -263,3 +263,63 @@
   ```
 
   - `teleop_twist_keyboard` 노드를 실행하여 키보드로 neuronbot2를 제어할 수 있도록 한다.
+
+## Ch02-03. (실습) 작성한 지도 저장하기
+---
+
+ ### 작성한 지도 저장하기
+
+ ```bash
+ # bookstore world에 neuronbot2를 spawn하고 cartographer 수행 (이미 켜져있으면 skip)
+ ros2 launch neuronbot2_gazebo neuronbot2_world.launch.py
+ ros2 launch neuronbot2_slam cartographer_launch.py open_rviz:=true use_sim_time:=true
+ # 로봇 수동 제어
+ ros2 run teleop_twist_keyboard teleop_twist_keyboard
+ ```
+ <div align="left">
+   <img src="https://github.com/user-attachments/assets/0bb730a1-1cfa-46b1-9f23-1ab334c1691e" height="350" width="600">
+  </div> 
+
+ - cartographer를 작동시키고 로봇을 주행하여 아래 그림과 같이 지도 작성을 진행.
+
+ ```bash
+ cd ~/nav2_ws/src/neuronbot2/neuronbot2_nav/map
+ ros2 run nav2_map_server map_saver_cli -f bookstore
+ ```
+
+ - Cartographer 등의 2D LiDAR 기반 SLAM 알고리즘을 통해 생성한 지도를 저장하려면 `nav2_map_server`
+
+   패키지의 `map_saver` 노드를 실행해야 한다.
+ - 지도를 저장할 디렉토리로 먼저 이동하면 그 위치에 지도를 저장할 수 있다.
+   
+   (`map_saver` 노드를 호출하기 전에 cartographer를 종료하면 생성한 맵을 잃게된다.)
+
+ ```bash
+ cd ~/nav2_ws/src/neuronbot2/neuronbot2_nav/map
+ ros2 run nav2_map_server map_saver_cli -f bookstore
+ ```
+ <div align="left">
+   <img src="https://github.com/user-attachments/assets/6fe736e0-a49a-4bc7-8f60-393e33151b14" height="350" width="600">
+  </div> 
+ 
+ - `*.pgm`파일
+   - 이미지 파일로서 Occupancy Grid Map 기반의 지도 파일
+ - `*.yaml` 파일
+    - 지도의 메타데이터(metadata)가 포함된 속성 파일
+    - **image:** 생성된 지도의 이미지가 포함된 파일 이름.
+    - **mode:** 만들어진 지도의 영역을 3가지(점유된 영역, 비어있는 영역, 미지의 영역)로 구분할 것이라는 의미.
+
+                => trinary를 사용.
+    - **resolution:** 지도의 해상도(단위: m/pixel)
+    - **origin:** 지도의 왼쪽 하단 2D 픽셀 좌표 (x, y, theta)
+    - **ccupied_thresh:** 이 값보다 큰 픽셀은 점유 영역으로 간주함 (장애물로 표시됨)
+    - **fresh_thresh:** 이 값보다 작은 값을 가진 픽셀은 완전히 비어있는 영역으로 간주
+    - **negate:** 이 값이 '1'로 되어있을 경우 맵의 색상을 반전 ( 검정색 -free / 흰색 -occupied )
+
+ ```bash
+ cd ~/nav2_ws
+ colcon build --symlink-install --packages-select neuronbot2_nav
+ ```
+
+ - 저장한 지도를 다음에 사용할 수 있도록, 빌드를 통해 워크스페이스의 install 디렉토리에 설치
+                
