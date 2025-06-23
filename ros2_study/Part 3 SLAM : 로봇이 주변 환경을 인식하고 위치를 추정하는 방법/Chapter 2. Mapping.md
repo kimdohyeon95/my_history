@@ -323,3 +323,46 @@
 
  - 저장한 지도를 다음에 사용할 수 있도록, 빌드를 통해 워크스페이스의 install 디렉토리에 설치
                 
+## Ch02-04. 작성한 지도 수정 전략 및 다른 프로세스에서 활용 방법
+---
+
+ ### 작성한 지도 수정하기
+
+  #### 작성한 지도를 수정하는 목적
+
+   <div align="left">
+   <img src="https://github.com/user-attachments/assets/c39e3cdf-52fa-4f6f-b2fc-5448893e5c98" height="350" width="600">
+  </div> 
+
+  - 아티팩트(artifact)
+    -센서의 노이즈에 의해 생기는 점.
+
+  <div align="left">
+   <img src="https://github.com/user-attachments/assets/ec696398-99d4-42a7-97e5-812947532a3d" height="350" width="600">
+  </div> 
+
+  - 리눅스 환경에서 포토샵을 이용한 작업이 제한 되므로 gimp 라는 에디터를 사용하여 지도의 장애물을 없앨 수 있다.
+
+  <div align="left">
+   <img src="https://github.com/user-attachments/assets/ef05cdf6-42f3-45ef-988f-913c1e9900b3" height="350" width="600">
+  </div> 
+
+  - 오픈소스로 제공되는 맵 수정 툴을 이용하여 격자 형태로 띄워진 맵을 수정할 수 있다.
+
+ ### 저장한 맵을 다른 프로세스에서 사용하기 
+
+  <div align="left">
+   <img src="https://github.com/user-attachments/assets/ecbc2999-ea36-49c8-aadb-72fcd13c6b57" height="350" width="600">
+  </div> 
+
+
+  <div align="left">
+   <img src="https://github.com/user-attachments/assets/303a8c0f-8b06-4edf-9fcf-0d6a8c45753d" height="350" width="600">
+  </div> 
+  
+  - `map_server` 노드에서 `yaml_filename`을 파라미터로 받아서 토픽으로 map을 던져준다.
+
+  <div align="left">
+   <img src="https://github.com/user-attachments/assets/003795c7-59ad-4a20-b84f-db27552c2f92" height="350" width="600">
+  </div> 
+ 
