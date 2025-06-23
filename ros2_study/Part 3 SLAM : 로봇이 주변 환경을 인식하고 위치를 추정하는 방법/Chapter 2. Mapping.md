@@ -411,3 +411,87 @@
    - 노드가 작동하고 있는지 죽었는지 판단하는 것이 힘들었으나 각 구성요소들의 라이프사이클을 모니터링 할 수 있기 때문에 각각의 노드들이
 
      정상적으로 작동하는지 또는 작동하지 않을 때 적절한 조치를 취할 수 있다.   
+
+## Ch02-06. (실습) Lifecycle Manager 서비스 테스트
+---
+
+ ### Lifecycle manager 서비스 실습
+
+ ```bash
+ ros2 launch neuronbot2_nav localization_launch.py use_sim_time:=true
+ ```
+
+ - ROS2 시스템 상에서 lifecycle manager의 작동을 확인하기 위해, localization을 위한 런치 파일을 실행
+
+ ```bash
+ ros2 service list | grep lifecycle
+ ```
+
+ - `ros2 service list` 명령어로 `nav2_map_server`가 lifecycle manager에 의해 관리되는지 확인
+
+ <div align="left">
+   <img src="https://github.com/user-attachments/assets/e3fb1809-aae4-4cc6-88e7-98b35a2868c7" height="250" width="550">
+ </div>
+
+ - 위 결과에서 확인할 수 있듯이 `nav2_lifecycle_manager`에서 제공하는
+
+   `/lifecycle_manager_localization/manage_nodes` 서비스가 있다.
+
+
+ ```bash
+ ros2 service type /lifecycle_manager_localization/manage_nodes
+ ```
+
+ - 어떤 타입의 서비스를 호출해야하는지 `ros2 service type` 명령어를 통해 확인
+
+ <div align="left">
+   <img src="https://github.com/user-attachments/assets/8d1f967f-43f7-4287-8c46-2cc416065b64" height="50" width="550">
+ </div>
+
+ - 서비스 타입이 `nav2_msgs/srv/ManageLifecycleNodes` 인 것을 확인.
+   
+ ```bash
+ ros2 interface show nav2_msgs/srv/ManageLifecycleNodes
+ ```
+
+ - `ros2 interface show`명령어로 `nav2_msgs/srv/ManageLifecycleNodes` 모드의 인터페이스 타입 확인. 
+   
+ <div align="left">
+   <img src="https://github.com/user-attachments/assets/7478a512-cd36-4546-96b0-98e7378482e3" height="150" width="550">
+ </div>
+
+ - 서비스를 호출할 때 0에서 4 사이의 숫자를 전달하여 Localization 기능을 어떤 상태로 설정할지를 정할 수 있다.
+ - 서비스는 성공 여부를 나타내는 boolean 값을 반환.
+
+ ```bash
+ ros2 service call /lifecycle_manager_localization/manage_nodes nav2_msgs/srv/ManageLifecycleNodes command:\ 1
+ ```
+
+ - 예를 들어 위의 `ros2 service call` 명령어 서비스를 호출하여 Localization을 PAUSE 할 수 있다.
+
+ <div align="left">
+   <img src="https://github.com/user-attachments/assets/8450248a-bd5a-4ac6-9938-33c8d4f823a9" height="200" width="550">
+ </div>
+ 
+ <div align="left">
+   <img src="https://github.com/user-attachments/assets/bed72d9c-444c-4199-8ddd-8116b54d12aa" height="200" width="550">
+ </div>
+
+ - `amcl`과 `map_server` 노드가 deactivating 된 것을 확인 할 수 있다. 
+ - 이제 로봇은 Localization을 일시적으로 수행할 수 없다.
+   
+ ```bash
+ ros2 service call /lifecycle_manager_localization/manage_nodes nav2_msgs/srv/ManageLifecycleNodes command:\ 2
+ ```
+
+ - 다시 `Localization` 노드를 RESUME 하기 위해서는 위의 명령어를 입력하면 된다.
+
+ <div align="left">
+   <img src="https://github.com/user-attachments/assets/7f178b5a-bdbb-49eb-8b75-2714f6ea5fa4" height="150" width="550">
+ </div>
+ <div align="left">
+   <img src="https://github.com/user-attachments/assets/a471c03d-3dec-4811-9c0a-fa7904d1a79e" height="150" width="550">
+ </div>
+
+ - `amcl`과 `map_server` 노드가 다시 activating 된 것을 확인 할 수 있다. 
+ - 이제 로봇은 Localization을 다시 수행 할 수 있다. 
