@@ -191,16 +191,86 @@
 
     localization과 관련된 파라미터들이 정의되어있다.
 
+  #### Rviz 파일
+  
   ```bash
+  cd ~/nav2_ws/src/neuronbot2/neuronbot2_nav/rviz
+  rviz2 -d nav2_default_view.rviz
   ```
 
-  ```bash
-  ```
+  - 설정 파일 수정을 위해 기존의 rviz 파일을 열어준다.
 
+  <div align="left">
+   <img src="https://github.com/user-attachments/assets/74e7943f-6d3a-4291-b842-2334697b3e0d" height="400" width="450">
+  </div>
 
-![image](https://github.com/user-attachments/assets/74e7943f-6d3a-4291-b842-2334697b3e0d)
-![image](https://github.com/user-attachments/assets/ac564fa4-5c2f-4441-81c4-f88dedf90032)
-![image](https://github.com/user-attachments/assets/465fd729-6db1-4414-8002-c5aba2a2f0db)
-![Screencast-from-2025년-06월-24일-13시-07분-43초](https://github.com/user-attachments/assets/8014e288-dad2-4640-820b-8144fe826d09)
+  <div align="left">
+    <img src="https://github.com/user-attachments/assets/ac564fa4-5c2f-4441-81c4-f88dedf90032" height="350" width="450">
+  </div>
 
+  - Rviz 시각화 툴을 켜고, 디스플레이 패널에서 ParticleCloud 타입을 추가한 후 topic을 /particle_cloud`로 지정하면
 
+    amcl 노드가 localization을 진행할 때 쓰이는 파티클이 생성된다.
+  - Topic 하위 메뉴에서 Reliable Policy 값을 Best Effort로 지정해야 파티클이 정상적으로 시각화된다.
+  - `ctrl + s`를 눌러 설정을 저장해.
+
+ ### AMCL을 통한 Localization 실습
+ 
+ ```bash
+ ros2 launch neuronbot2_gazebo neuronbot2_world.launch.py 
+ ```
+
+ - 시뮬레이션 환경(bookstore)에 neuronbot2을 spawn
+
+ <div align="left">
+    <img src="https://github.com/user-attachments/assets/465fd729-6db1-4414-8002-c5aba2a2f0db" height="400" width="500">
+ </div>
+
+ ```bash
+ ...
+
+ def generate_launch_description():
+     # Get the launch directory
+     my_nav_dir = get_package_share_directory('neuronbot2_nav')
+     my_param_dir = os.path.join(my_nav_dir, 'param')
+     my_param_file = 'neuronbot_params.yaml'
+     my_map_dir = os.path.join(my_nav_dir, 'map')
+     my_map_file = 'bookstore.yaml'
+     
+ ...
+ ```
+
+ - 사용할 지도의 속성 파일을 불러올 수 있도록 `my_map_file` 변수의 값을 `bookstore.yaml`로 수정.
+
+ ```bash
+ ros2 launch neuronbot2_nav localization_launch.py use_sim_time:=true
+ ```
+
+ - AMCL 기반의 Localization 수행을 위해 아래 런치 파일을 시작.
+
+ ```bash
+ cd ~/nav2_ws/src/neuronbot2/neuronbot2_nav/rviz
+ rviz2 -d nav2_default_view.rviz
+ ```
+
+ - Rviz2를 실행하여 Localization 상황을 확인.
+
+ ```bash
+ ros2 run teleop_twist_keyboard teleop_twist_keyboard
+ ```
+
+ - 로봇을 키보드로 제어하여 Localization이 제대로 수행되는지 관찰.
+
+ <div align="left">
+   <img src="https://github.com/user-attachments/assets/8014e288-dad2-4640-820b-8144fe826d09" height="400" width="700">
+  </div>
+ 
+ - 지도에서 로봇의 초기 위치를 설정하기 위해 `2D Pose Estimate` 버튼을 클릭한 후, 시뮬레이터 상에서
+
+   로봇의 실제위치와 해당되는 비슷한 위치와 방향을 클릭 해준다.
+ - 그 후, 키보드로 로봇을 움직여 AMCL이 새 로봇 위치에 어떻게 적응하는지 관찰하고, 가능성이 높은 로봇 위치에
+
+   파티클이 집중되면서 Localization에 성공하는 것을 알 수 있다.
+ - 이를 통해, amcl 알고리즘에 있어서 초기값은 중요하고, 대략적인 위치와 방향이 맞아 떨어져야 주변 환경에 대한
+
+   센서 정보와 map 정보를 기반으로 정확한 위치를 찾을 가능성이 높아진다. 
