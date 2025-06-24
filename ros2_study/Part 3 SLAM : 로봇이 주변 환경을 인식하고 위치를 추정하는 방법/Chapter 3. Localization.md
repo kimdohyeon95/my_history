@@ -50,4 +50,157 @@
 
 - 로봇이 이동하면 할 수록 이동량과 취득한 센서값을 바탕으로 내가 지도상에서 어느곳에 위치할 가능성이 높은지를
 
-  점점 수렴하게 하면서 최종적으로 지도상에서 로봇이 어디있는지를 알 수 있다. 
+  점점 수렴하게 하면서 최종적으로 지도상에서 로봇이 어디있는지를 알 수 있다.
+
+## Ch03-02. (실습) AMCL (Adaptive Monte Carlo Localization)
+---
+
+ ### AMCL 수행을 위한 준비
+
+  #### Launch 파일
+
+  ```bash
+    ...
+  
+  Node(
+      package='nav2_map_server',
+      executable='map_server',
+      name='map_server',
+      output='screen',
+      respawn=use_respawn,
+      respawn_delay=2.0,
+      parameters=[configured_params],
+      remappings=remappings),
+  Node(
+      package='nav2_amcl',
+      executable='amcl',
+      name='amcl',
+      output='screen',
+      respawn=use_respawn,
+      respawn_delay=2.0,
+      parameters=[configured_params],
+      remappings=remappings),
+  Node(
+      package='nav2_lifecycle_manager',
+      executable='lifecycle_manager',
+      name='lifecycle_manager_localization',
+      output='screen',
+      parameters=[{'use_sim_time': use_sim_time},
+                  {'autostart': autostart},
+                  {'node_names': lifecycle_nodes}])
+  
+  ...
+  ```
+
+  - `~/nav2_ws/src/neuronbot2/neuronbot2_nav/launch/localization_launch.py` 에 위에서 언급되었던 세 가지 노드가 사용
+  - `nav2_map_server`: 실제 map yamal 파일을 파라미터로 받아서 map을 제공
+  - `nav2_amcl`: 실제 localization 알고리즘을 수행하는 노드.
+  - `nav2_lifecycle_manager`: localization 수행과 관련된 노드들을 관리하는 역할 파리미터로 관리할 노드이름을 전달받는다.  
+
+  ```bash
+  my_nav_dir = get_package_share_directory('neuronbot2_nav')
+  my_map_dir = os.path.join(my_nav_dir, 'map')
+  my_map_file = 'bookstore.yaml'
+  
+  ...
+  
+  map_yaml_file = LaunchConfiguration('map')
+  
+  ...
+  
+  param_substitutions = {
+      'use_sim_time': use_sim_time,
+      'yaml_filename': map_yaml_file}
+  
+  configured_params = RewrittenYaml(
+      source_file=params_file,
+      root_key=namespace,
+      param_rewrites=param_substitutions,
+      convert_types=True)
+  
+  ...
+  
+  declare_map_yaml_cmd = DeclareLaunchArgument(
+      'map',
+      default_value=os.path.join(my_map_dir, my_map_file),
+      description='[localize] Full path to map yaml file to load')
+  ```
+
+  - map_server는 위의 코드로부터 지도의 메타 파일(*.yaml)을 읽어 지도 정보를 불러올 수 있다.
+
+  ```bash
+  my_nav_dir = get_package_share_directory('neuronbot2_nav')
+  my_param_dir = os.path.join(my_nav_dir, 'param')
+  my_param_file = 'neuronbot_params.yaml'
+  
+  ...
+  
+  params_file = LaunchConfiguration('params_file')
+  
+  ...
+  
+  configured_params = RewrittenYaml(
+      source_file=params_file,
+      root_key=namespace,
+      param_rewrites=param_substitutions,
+      convert_types=True)
+  
+  ...
+  
+  declare_params_file_cmd = DeclareLaunchArgument(
+      'params_file',
+      default_value=os.path.join(my_param_dir, my_param_file),
+      description='Full path to the ROS2 parameters file to use')
+  ```
+
+  - amcl은 위의 코드로부터 yaml 파일을 읽어 필요한 파라미터들을 불러올 수 있다.
+
+  ```bash
+  lifecycle_nodes = ['map_server', 'amcl']
+  ```
+
+  - lifecycle_manager가 관리해야 하는 노드의 이름이 포함된 리스트를 사전에 정의. 
+
+  #### YAML 파일 
+  
+  ```bash
+  amcl:
+  ros__parameters:
+    use_sim_time: False
+    alpha1: 0.9
+    alpha2: 0.1
+    alpha3: 0.05
+    alpha4: 0.01
+    alpha5: 0.04
+    base_frame_id: "base_footprint"
+    beam_skip_distance: 0.5
+    beam_skip_error_threshold: 0.9
+    beam_skip_threshold: 0.3
+    do_beamskip: false
+    global_frame_id: "map"
+    lambda_short: 0.1
+    laser_likelihood_max_dist: 2.0
+    laser_max_range: 100.0
+    laser_min_range: -1.0
+    laser_model_type: "likelihood_field"
+
+    ...
+  ```
+
+  - 위에서 언급된 경로(`~/nav2_ws/src/neuronbot2/neuronbot2_nav/param`)에는 `neuronbot_params.yaml` 파일이 있고 amcl 블럭에
+
+    localization과 관련된 파라미터들이 정의되어있다.
+
+  ```bash
+  ```
+
+  ```bash
+  ```
+
+
+![image](https://github.com/user-attachments/assets/74e7943f-6d3a-4291-b842-2334697b3e0d)
+![image](https://github.com/user-attachments/assets/ac564fa4-5c2f-4441-81c4-f88dedf90032)
+![image](https://github.com/user-attachments/assets/465fd729-6db1-4414-8002-c5aba2a2f0db)
+![Screencast-from-2025년-06월-24일-13시-07분-43초](https://github.com/user-attachments/assets/8014e288-dad2-4640-820b-8144fe826d09)
+
+
